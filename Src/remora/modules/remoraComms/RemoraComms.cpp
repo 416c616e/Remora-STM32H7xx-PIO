@@ -33,9 +33,6 @@ RemoraComms::RemoraComms(volatile rxData_t* ptrRxData, volatile txData_t* ptrTxD
     this->irqDMArx = 	DMA1_Stream1_IRQn;
 
     // Note: Avoid performing complex initialisation here as this constructor is called before DMA and cache setup.
-
-    pin1 = new Pin("PE_11", OUTPUT);
-    pin2 = new Pin("PE_12", OUTPUT);
 }
 
 
@@ -672,8 +669,6 @@ void RemoraComms::processPacket()
 {
 	if (this->copyRXbuffer == true)
     {
-		this->pin1->set(1);
-
 	    uint8_t* srcBuffer = (uint8_t*)this->ptrRxDMABuffer->buffer[this->RXbufferIdx].rxBuffer;
 	    uint8_t* destBuffer = (uint8_t*)this->ptrRxData->rxBuffer;
 
@@ -693,8 +688,6 @@ void RemoraComms::processPacket()
 	    HAL_DMA_Abort(&this->hdma_memtomem);
 
 		this->copyRXbuffer = false;
-
-		this->pin1->set(0);
     }
 }
 
@@ -719,8 +712,6 @@ void RemoraComms::processPacket()
  */
 void RemoraComms::update()
 {
-	this->pin2->set(1);
-
 	if (this->data)
 	{
 		this->noDataCount = 0;
@@ -738,6 +729,4 @@ void RemoraComms::update()
 	}
 
 	this->data = false;
-
-	this->pin2->set(0);
 }
