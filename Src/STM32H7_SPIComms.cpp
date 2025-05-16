@@ -74,7 +74,7 @@ void STM32H7_SPIComms::init() {
 
 		printf("Initialising GPIO for SPI\n");
 
-	    __HAL_RCC_GPIOA_CLK_ENABLE();
+	    __HAL_RCC_GPIOB_CLK_ENABLE();
 	    /**SPI1 GPIO Configuration
 	    PA4     ------> SPI1_NSS
 	    PA5     ------> SPI1_SCK
