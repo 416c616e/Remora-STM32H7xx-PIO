@@ -44,12 +44,14 @@ private:
 	bool isStepping;               			/**< Flag indicating whether stepping is occurring */
 	bool debug;								/**< Debug enabled and printing on slow thread freq */
 
+	Remora* remora;							/**< Remora pointer */
+
 	void makePulses();             			/**< Generates step pulses */
 	void stopPulses();             			/**< Stops the pulse generation */
 
 public:
 
-	Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, const char* _step, const char* _direction, int _stepBit, volatile int32_t &_ptrFrequencyCommand, volatile int32_t &_ptrFeedback, volatile uint8_t &_ptrJointEnable, bool _usesModulePost, bool _debug, uint32_t _debugFreq);
+	Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, const char* _step, const char* _direction, int _stepBit, volatile int32_t &_ptrFrequencyCommand, volatile int32_t &_ptrFeedback, volatile uint8_t &_ptrJointEnable, bool _usesModulePost, bool _debug, uint32_t _debugFreq, Remora* instance);
 	static std::shared_ptr<Module> create(const JsonObject& config, Remora* instance);
 
 	void update(void) override;

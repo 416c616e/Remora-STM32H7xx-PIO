@@ -82,6 +82,8 @@ public:
     volatile rxData_t* getRxData() { return &rxData; }
     volatile bool* getReset() { return &reset; }
     pruThread* getSerialThread() { return serialThread.get(); }
+
+    std::shared_ptr<CommsHandler> getCommsHandler() { return comms; }
 };
 
 #endif

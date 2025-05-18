@@ -54,6 +54,8 @@ public:
     void init(void);
     void start(void);
     void tasks(void);
+    
+	void slowUpdate(void) override;
 };
 
 #endif

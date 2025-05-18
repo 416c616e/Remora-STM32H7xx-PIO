@@ -24,7 +24,7 @@ std::shared_ptr<Module> Stepgen::create(const JsonObject& config, Remora* instan
 	    bool usesModulePost = true;		// stepgen uses the thread modulesPost vector
 
 	    // Create the step generator and register it in the thread
-	    return std::make_unique<Stepgen>(threadFreq, joint, enable, step, dir, Config::stepBit, *ptrJointFreqCmd, *ptrJointFeedback, *ptrJointEnable, usesModulePost, debug, debugFreq);
+	    return std::make_unique<Stepgen>(threadFreq, joint, enable, step, dir, Config::stepBit, *ptrJointFreqCmd, *ptrJointFeedback, *ptrJointEnable, usesModulePost, debug, debugFreq, instance);
 	}
 
 /**
@@ -44,8 +44,9 @@ std::shared_ptr<Module> Stepgen::create(const JsonObject& config, Remora* instan
  * @param _ptrJointEnable A reference to the joint enable data.
  * @param _debug Enable debugging for the joint
  * @param _debugFreq Debugging thread frequency for outputting
+ * @param _instance Remora pointer
  */
-Stepgen::Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, const char* _step, const char* _direction, int _stepBit, volatile int32_t& _ptrFrequencyCommand, volatile int32_t& _ptrFeedback,  volatile uint8_t& _ptrJointEnable, bool _usesModulePost, bool _debug, uint32_t _debugFreq)
+Stepgen::Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, const char* _step, const char* _direction, int _stepBit, volatile int32_t& _ptrFrequencyCommand, volatile int32_t& _ptrFeedback,  volatile uint8_t& _ptrJointEnable, bool _usesModulePost, bool _debug, uint32_t _debugFreq, Remora* _instance)
     : jointNumber(_jointNumber),
       enable(_enable),
       step(_step),
@@ -64,7 +65,8 @@ Stepgen::Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, con
       isEnabled(false),
       isForward(false),
       isStepping(false),
-      debug(_debug)
+      debug(_debug),
+      remora(_instance)
 {
 	usesModulePost = _usesModulePost;
     updateCount = _debugFreq;
@@ -102,13 +104,18 @@ void Stepgen::slowUpdate()
     if (debug)
     {
         // Currently no operation for slow update
-        printf("Joint %d - %s [%s, %s, %d, %ld]\n\r", 
+        printf("Joint %d - %s [Pin=%s, Dir=%s, Stepping=%s, Count=%d, Raw=%ld, Cmd=%d, Scale=%f, Rx=%d, Tx=%d]\n\r", 
             this->jointNumber,
             this->isEnabled ? "ON" : "OFF",
+            this->enablePin.get() ? "ON" : "OFF",
             this->isForward ? "FW" : "REV",
             this->isStepping ? "STEP" : "NO_STEP",
             this->rawCount,
-            *ptrFeedback
+            *ptrFeedback,
+            *ptrFrequencyCommand,
+            frequencyScale,
+            this->remora->getCommsHandler()->getInterface()->getRxCount(),
+            this->remora->getCommsHandler()->getInterface()->getTxCount()
         );
     }
 }

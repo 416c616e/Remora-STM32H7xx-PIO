@@ -14,10 +14,27 @@ STM32H7_SPIComms::STM32H7_SPIComms(volatile rxData_t* _ptrRxData, volatile txDat
     irqNss = EXTI15_10_IRQn;
     irqDMAtx = DMA1_Stream0_IRQn;
     irqDMArx = DMA1_Stream1_IRQn;
+
+    updateCount = 40000;
+
+    this->resetRxCount();
+    this->resetTxCount();
 }
 
 STM32H7_SPIComms::~STM32H7_SPIComms() {
 
+}
+
+void STM32H7_SPIComms::slowUpdate()
+{
+    if (true)
+    {
+        printf("SPI Comms [rxCount=%d, txCount=%d, newData=%s]\n\r",
+            this->getRxCount(),
+            this->getTxCount(),
+            newWriteData ? "YES" : "NO"
+        );
+    }
 }
 
 void STM32H7_SPIComms::init() {
@@ -140,6 +157,9 @@ void STM32H7_SPIComms::init() {
 }
 
 void STM32H7_SPIComms::start() {
+    this->resetRxCount();
+    this->resetTxCount();
+
     // Register the NSS (slave select) interrupt
     NssInterrupt = new ModuleInterrupt<STM32H7_SPIComms>(
         irqNss,
@@ -466,12 +486,16 @@ void STM32H7_SPIComms::handleNssInterrupt()
 
 void STM32H7_SPIComms::handleTxInterrupt()
 {
+    this->incTxCount();
+
 	DMA_IRQHandler(&hdma_spi_tx);
 	HAL_NVIC_EnableIRQ(irqDMAtx);
 }
 
 void STM32H7_SPIComms::handleRxInterrupt()
 {
+    this->incRxCount();
+
     // Handle the interrupt and determine the type of interrupt
     interruptType = DMA_IRQHandler(&hdma_spi_rx);
 
