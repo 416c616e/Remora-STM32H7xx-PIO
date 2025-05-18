@@ -7,7 +7,7 @@ Interrupt* Interrupt::ISRVectorTable[PERIPH_COUNT_IRQn] = {nullptr};
 // Register an interrupt with a specific IRQ number
 void Interrupt::Register(uint32_t interruptNumber, Interrupt* intThisPtr) {
     if (interruptNumber < PERIPH_COUNT_IRQn) {
-        printf("Registering interrupt for IRQ %ld\n", interruptNumber);
+        printf("Registering interrupt for IRQ %ld\n\r", interruptNumber);
         ISRVectorTable[interruptNumber] = intThisPtr;
     }
 }

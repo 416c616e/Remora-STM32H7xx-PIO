@@ -66,7 +66,7 @@ void RemoraComms::init()
         HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
         #endif
 
-        printf("	Initialising SPI2 slave\n");
+        printf("	Initialising SPI2 slave\n\r");
 
         this->spiHandle.Init.Mode           		= SPI_MODE_SLAVE;
         this->spiHandle.Init.Direction      		= SPI_DIRECTION_2LINES;
@@ -94,7 +94,7 @@ void RemoraComms::init()
     	// Peripheral clock enable
     	__HAL_RCC_SPI2_CLK_ENABLE();
 
-		printf("	Initialising GPIO for SPI\n");
+		printf("	Initialising GPIO for SPI\n\r");
 
 	    /**SPI1 GPIO Configuration
 	    PA4     ------> SPI1_NSS
@@ -125,7 +125,7 @@ void RemoraComms::init()
 	    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
         #endif
 
-        printf("	Initialising DMA for SPI\n");
+        printf("	Initialising DMA for SPI\n\r");
 
         this->hdma_spi_tx.Instance 					= DMA1_Stream0;
         this->hdma_spi_tx.Init.Request 				= DMA_REQUEST_SPI2_TX;
@@ -155,7 +155,7 @@ void RemoraComms::init()
         HAL_DMA_Init(&this->hdma_spi_rx);
         __HAL_LINKDMA(&this->spiHandle, hdmarx, this->hdma_spi_rx);
 
-        printf("	Initialising DMA for Memory to Memory transfer\n");
+        printf("	Initialising DMA for Memory to Memory transfer\n\r");
 
         this->hdma_memtomem.Instance 				= DMA1_Stream2;
         this->hdma_memtomem.Init.Request 			= DMA_REQUEST_MEM2MEM;
@@ -231,7 +231,7 @@ void RemoraComms::start()
     // Check for DMA initialization errors
     if (this->dmaStatus != HAL_OK)
     {
-        printf("DMA SPI error\n");
+        printf("DMA SPI error\n\r");
     }
 }
 
@@ -645,7 +645,7 @@ void RemoraComms::handleRxInterrupt()
     }
     else // Other interrupt sources
     {
-        printf("DMA SPI Rx error\n");
+        printf("DMA SPI Rx error\n\r");
     }
 
     HAL_NVIC_EnableIRQ(this->irqDMArx);

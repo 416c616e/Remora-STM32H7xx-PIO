@@ -23,7 +23,7 @@ void Pin::configurePin() {
         pinNumber = std::stoi(portAndPin.substr(3));
         pin = 1 << pinNumber;
     } else {
-        printf("Invalid port and pin definition\n");
+        printf("Invalid port and pin definition\n\r");
         return;
     }
     

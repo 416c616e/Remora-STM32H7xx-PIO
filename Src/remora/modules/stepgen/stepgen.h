@@ -42,6 +42,7 @@ private:
 	bool isEnabled;                			/**< Flag indicating whether the step generator is enabled */
 	bool isForward;                			/**< Current direction (forward or backward) */
 	bool isStepping;               			/**< Flag indicating whether stepping is occurring */
+	bool debug;								/**< Debug enabled and printing on slow thread freq */
 
 	void makePulses();             			/**< Generates step pulses */
 	void stopPulses();             			/**< Stops the pulse generation */

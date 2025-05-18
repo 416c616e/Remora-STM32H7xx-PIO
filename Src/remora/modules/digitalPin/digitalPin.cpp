@@ -26,7 +26,7 @@ std::shared_ptr<Module> DigitalPin::create(const JsonObject& config, Remora* ins
 
 	volatile uint16_t* ptrData = (!strcmp(mode, "Output")) ? &instance->getRxData()->outputs : &instance->getTxData()->inputs;
 
-	printf("Creating DigitalPin module: Mode=%s, Pin=%s\n", mode, pin);
+	printf("Creating DigitalPin module: Mode=%s, Pin=%s\n\r", mode, pin);
 	return std::make_unique<DigitalPin>(*ptrData, (!strcmp(mode, "Output")) ? 1 : 0, pin, dataBit, inv, mod);
 }
 

@@ -4,10 +4,10 @@
 #define TOFF_VALUE  4 // [1... 15]
 
 std::shared_ptr<Module> TMC2208::create(const JsonObject& config, Remora* instance) {
-    printf("Creating TMC2208 module\n");
+    printf("Creating TMC2208 module\n\r");
 
     const char* comment = config["Comment"];
-    printf("Comment: %s\n", comment);
+    printf("Comment: %s\n\r", comment);
 
     std::string RxPin = config["RX pin"];
     float RSense = config["RSense"];
@@ -29,7 +29,7 @@ TMC2208::TMC2208(std::string _rxtxPin, float _Rsense, uint16_t _mA, uint16_t _mi
 
 void TMC2208::configure()
 {
-    printf("\nStarting the Serial thread\n");
+    printf("Starting the Serial thread\n\r");
     instance->getSerialThread()->startThread();
 
     auto self = shared_from_this();
@@ -43,13 +43,13 @@ void TMC2208::configure()
     if (result) {
         printf("Failed!\nLikely cause: ");
         switch(result) {
-            case 1: printf("Loose connection\n"); break;
-            case 2: printf("No power\n"); break;
-            default: printf("Unknown issue\n"); break;
+            case 1: printf("Loose connection\n\r"); break;
+            case 2: printf("No power\n\r"); break;
+            default: printf("Unknown issue\n\r"); break;
         }
-        printf("Fix the problem and reset the board.\n");
+        printf("Fix the problem and reset the board.\n\r");
     } else {
-        printf("OK\n");
+        printf("OK\n\r");
     }
 
     // Configure driver settings
@@ -62,7 +62,7 @@ void TMC2208::configure()
     driver->iholddelay(10);
     driver->TPOWERDOWN(128);  // ~2s until driver lowers to hold current
 
-    printf("\nStopping the Serial thread\n");
+    printf("Stopping the Serial thread\n\r");
     instance->getSerialThread()->stopThread();
     instance->getSerialThread()->unregisterModule(self);
 }

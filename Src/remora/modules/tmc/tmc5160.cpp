@@ -4,10 +4,10 @@
 #define TOFF_VALUE  4 // [1... 15]
 
 std::shared_ptr<Module> TMC5160::create(const JsonObject& config, Remora* instance) {
-    printf("Creating TMC5160 module\n");
+    printf("Creating TMC5160 module\n\r");
 
     const char* comment = config["Comment"];
-    printf("Comment: %s\n", comment);
+    printf("Comment: %s\n\r", comment);
 
     std::string pinCS = config["CS pin"];
     std::string pinMOSI = config["MOSI pin"];
@@ -47,13 +47,13 @@ void TMC5160::configure()
     if (result) {
         printf("Failed!\nLikely cause: ");
         switch(result) {
-            case 1: printf("Loose connection\n"); break;
-            case 2: printf("No power\n"); break;
-            default: printf("Unknown issue\n"); break;
+            case 1: printf("Loose connection\n\r"); break;
+            case 2: printf("No power\n\r"); break;
+            default: printf("Unknown issue\n\r"); break;
         }
-        printf("Fix the problem and reset the board.\n");
+        printf("Fix the problem and reset the board.\n\r");
     } else {
-        printf("OK\n");
+        printf("OK\n\r");
     }
 
     // Configure driver settings

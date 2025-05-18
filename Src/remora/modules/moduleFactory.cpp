@@ -31,7 +31,7 @@ std::shared_ptr<Module> ModuleFactory::createModule(const char* _tname,
     		return TMC5160::create(config, instance);
     	}
     } else {
-        printf("Error: Unknown thread type '%s' or module type '%s'\n", _tname, _mtype);
+        printf("Error: Unknown thread type '%s' or module type '%s'\n\r", _tname, _mtype);
     }
 
     return nullptr;

@@ -6,7 +6,7 @@ std::shared_ptr<Module> Blink::create(const JsonObject& config, Remora* instance
     int frequency = config["Frequency"];
     uint32_t threadFreq = config["ThreadFreq"];
     
-    printf("Creating Blink module on pin %s with frequency %d Hz\n", pin, frequency);
+    printf("Creating Blink module on pin %s with frequency %d Hz\n\r", pin, frequency);
 	return std::make_unique<Blink>(pin, threadFreq, frequency);
 }
 

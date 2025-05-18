@@ -3,10 +3,10 @@
 
 std::shared_ptr<Module> ResetPin::create(const JsonObject& config, Remora* instance) {
 	const char* comment = config["Comment"];
-	printf("%s\n", comment);
+	printf("%s\n\r", comment);
 
 	const char* pin = config["Pin"];
-	printf("Make Reset Pin at pin %s\n", pin);
+	printf("Make Reset Pin at pin %s\n\r", pin);
 
 	return std::make_unique<ResetPin>(instance->getReset(), pin);
 }

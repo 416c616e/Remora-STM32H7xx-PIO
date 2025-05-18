@@ -6,7 +6,7 @@ std::shared_ptr<Module> Stepgen::create(const JsonObject& config, Remora* instan
 	    const char* comment = config["Comment"];
 	    uint32_t threadFreq = config["ThreadFreq"];
 
-	    printf("%s\n", comment);
+	    printf("%s\n\r", comment);
 
 	    int joint = config["Joint Number"];
 	    const char* enable = config["Enable Pin"];
@@ -63,14 +63,11 @@ Stepgen::Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, con
       mask(1 << _jointNumber),  // Mask for checking the joint number
       isEnabled(false),
       isForward(false),
-      isStepping(false)
+      isStepping(false),
+      debug(_debug)
 {
 	usesModulePost = _usesModulePost;
-    
-    if (_debug)
-    {
-        slowUpdateFreq = _debugFreq; // 10 times a second
-    }
+    updateCount = _debugFreq;
 }
 
 /**
@@ -102,15 +99,18 @@ void Stepgen::updatePost()
  */
 void Stepgen::slowUpdate()
 {
-    // Currently no operation for slow update
-    printf("Joint %d - %s [%s, %s, %d, %ld]\n", 
-        this->jointNumber,
-        this->isEnabled ? "ON" : "OFF",
-        this->isForward ? "FW" : "REV",
-        this->isStepping ? "STEP" : "NO_STEP",
-        this->rawCount,
-        *ptrFeedback
-    );
+    if (debug)
+    {
+        // Currently no operation for slow update
+        printf("Joint %d - %s [%s, %s, %d, %ld]\n\r", 
+            this->jointNumber,
+            this->isEnabled ? "ON" : "OFF",
+            this->isForward ? "FW" : "REV",
+            this->isStepping ? "STEP" : "NO_STEP",
+            this->rawCount,
+            *ptrFeedback
+        );
+    }
 }
 
 /**

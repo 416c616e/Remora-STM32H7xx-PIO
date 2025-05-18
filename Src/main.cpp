@@ -283,7 +283,7 @@ static void MX_SDMMC1_SD_Init(void)
   /* USER CODE BEGIN SDMMC1_Init 2 */
   if (HAL_SD_Init(&hsd1) != HAL_OK)
   {
-      printf("SD_Init error\n");
+      printf("SD_Init error\n\r");
   }
   /* USER CODE END SDMMC1_Init 2 */
 
@@ -431,7 +431,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+     ex: printf("Wrong parameters value: file %s on line %d\n\r", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

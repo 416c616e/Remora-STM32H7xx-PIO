@@ -44,7 +44,7 @@ void STM32H7_SPIComms::init() {
         HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
         #endif
 
-        printf("Initialising SPI2 slave\n");
+        printf("Initialising SPI2 slave\n\r");
 
         spiHandle.Init.Mode           			= SPI_MODE_SLAVE;
         spiHandle.Init.Direction      			= SPI_DIRECTION_2LINES;
@@ -72,7 +72,7 @@ void STM32H7_SPIComms::init() {
     	// Peripheral clock enable
     	__HAL_RCC_SPI2_CLK_ENABLE();
 
-		printf("Initialising GPIO for SPI\n");
+		printf("Initialising GPIO for SPI\n\r");
 
 	    __HAL_RCC_GPIOB_CLK_ENABLE();
 	    /**SPI1 GPIO Configuration
@@ -89,7 +89,7 @@ void STM32H7_SPIComms::init() {
 	    GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
 	    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-        printf("Initialising DMA for SPI\n");
+        printf("Initialising DMA for SPI\n\r");
 
         hdma_spi_tx.Instance 					= DMA1_Stream0;
         hdma_spi_tx.Init.Request 				= DMA_REQUEST_SPI2_TX;
@@ -119,7 +119,7 @@ void STM32H7_SPIComms::init() {
         HAL_DMA_Init(&hdma_spi_rx);
         __HAL_LINKDMA(&spiHandle, hdmarx, hdma_spi_rx);
 
-        printf("Initialising DMA for Memory to Memory transfer\n");
+        printf("Initialising DMA for Memory to Memory transfer\n\r");
 
         hdma_memtomem.Instance 					= DMA1_Stream2;
         hdma_memtomem.Init.Request 				= DMA_REQUEST_MEM2MEM;
@@ -186,7 +186,7 @@ void STM32H7_SPIComms::start() {
 
     // Check for DMA initialization errors
     if (dmaStatus != HAL_OK) {
-        printf("DMA SPI error\n");
+        printf("DMA SPI error\n\r");
     }
 }
 
@@ -504,7 +504,7 @@ void STM32H7_SPIComms::handleRxInterrupt()
     }
     else // Other interrupt sources
     {
-        printf("DMA SPI Rx error\n");
+        printf("DMA SPI Rx error\n\r");
     }
 
     HAL_NVIC_EnableIRQ(irqDMArx);
