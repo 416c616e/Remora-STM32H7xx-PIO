@@ -205,19 +205,19 @@ void SystemClock_Config(void)
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
     RCC_OscInitStruct.PLL.PLLM = 5;  // 25Mhz / 5 = 5Mhz
-    RCC_OscInitStruct.PLL.PLLN = 110; // 25Mhz / 5 * 110 = 550Mhz
+    RCC_OscInitStruct.PLL.PLLN = 96; // 25Mhz / 5 * 110 = 550Mhz
     RCC_OscInitStruct.PLL.PLLP = 1;  // 550Mhz / 1 = 550Mhz
     RCC_OscInitStruct.PLL.PLLQ = 10; // 550Mhz / 10 = 55Mhz
-    RCC_OscInitStruct.PLL.PLLR = 10; // unused
+    RCC_OscInitStruct.PLL.PLLR = 2; // unused
     RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
     RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
     RCC_OscInitStruct.PLL.PLLFRACN = 0;
 
-    PeriphClkInitStruct.PLL2.PLL2M = 15; // M DIV 15 vco 25 / 15 ~ 1.667 Mhz
+    PeriphClkInitStruct.PLL2.PLL2M = 5; // M DIV 15 vco 25 / 15 ~ 1.667 Mhz
     PeriphClkInitStruct.PLL2.PLL2N = 96; // N MUL 96
-    PeriphClkInitStruct.PLL2.PLL2P = 2;  // P div 2
-    PeriphClkInitStruct.PLL2.PLL2Q = 2;  // Q div 2
-    PeriphClkInitStruct.PLL2.PLL2R = 2;  // R div 2
+    PeriphClkInitStruct.PLL2.PLL2P = 1;  // P div 2
+    PeriphClkInitStruct.PLL2.PLL2Q = 10;  // Q div 2
+    PeriphClkInitStruct.PLL2.PLL2R = 40;  // R div 2
     PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL1VCIRANGE_2;
     PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL1VCOWIDE;
     PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
@@ -249,9 +249,13 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SDMMC|RCC_PERIPHCLK_SPI2;
-  PeriphClkInitStruct.Spi123ClockSelection = RCC_SPI123CLKSOURCE_PLL2;
-  PeriphClkInitStruct.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL2;
+  PeriphClkInitStruct.PeriphClockSelection  = RCC_PERIPHCLK_SPI123 | RCC_PERIPHCLK_SPI45 | RCC_PERIPHCLK_I2C123 |
+                                               RCC_PERIPHCLK_USART16 | RCC_PERIPHCLK_USART234578;
+  PeriphClkInitStruct.Spi123ClockSelection  = RCC_SPI123CLKSOURCE_PLL;
+  PeriphClkInitStruct.Spi45ClockSelection   = RCC_SPI45CLKSOURCE_PLL2;
+  PeriphClkInitStruct.I2c1235ClockSelection = RCC_I2C123CLKSOURCE_D2PCLK1;
+  PeriphClkInitStruct.Usart16ClockSelection = RCC_USART16CLKSOURCE_PCLK2;
+  PeriphClkInitStruct.Usart234578ClockSelection = RCC_USART234578CLKSOURCE_PCLK1;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
     Error_Handler();
