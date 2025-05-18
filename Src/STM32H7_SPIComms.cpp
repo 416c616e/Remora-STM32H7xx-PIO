@@ -11,7 +11,7 @@ STM32H7_SPIComms::STM32H7_SPIComms(volatile rxData_t* _ptrRxData, volatile txDat
     spiHandle.Instance = spiType;
     ptrRxDMABuffer = &rxDMABuffer;
 
-    irqNss = EXTI4_IRQn;
+    irqNss = EXTI15_10_IRQn;
     irqDMAtx = DMA1_Stream0_IRQn;
     irqDMArx = DMA1_Stream1_IRQn;
 }

@@ -1,3 +1,4 @@
+#ifndef STM32H7xx
 /**
  * @file RemoraComms.cpp
  * @brief Implementation of the RemoraComms class for SPI communication with DMA.
@@ -730,3 +731,4 @@ void RemoraComms::update()
 
 	this->data = false;
 }
+#endif

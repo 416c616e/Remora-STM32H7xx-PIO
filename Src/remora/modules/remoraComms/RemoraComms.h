@@ -24,7 +24,7 @@ typedef enum {
     DMA_OTHER = 3        // Other or error status
 } DMA_TransferStatus_t;
 
-
+#ifndef STM32H7xx
 class RemoraComms : public Module
 {
     private:
@@ -80,5 +80,6 @@ class RemoraComms : public Module
         void processPacket(void);
         bool getStatus(void);
 };
+#endif
 
 #endif
