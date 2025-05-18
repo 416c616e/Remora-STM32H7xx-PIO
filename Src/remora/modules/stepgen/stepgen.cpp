@@ -13,6 +13,9 @@ std::shared_ptr<Module> Stepgen::create(const JsonObject& config, Remora* instan
 	    const char* step = config["Step Pin"];
 	    const char* dir = config["Direction Pin"];
 
+        bool debug = (strcmp(config["Debug"], "on") == 0);
+        uint32_t debugFreq = config["DebugFreq"];
+
 	    // Configure pointers to data source and feedback location
 	    volatile int32_t* ptrJointFreqCmd = &instance->getRxData()->jointFreqCmd[joint];
 	    volatile int32_t* ptrJointFeedback = &instance->getTxData()->jointFeedback[joint];
@@ -21,7 +24,7 @@ std::shared_ptr<Module> Stepgen::create(const JsonObject& config, Remora* instan
 	    bool usesModulePost = true;		// stepgen uses the thread modulesPost vector
 
 	    // Create the step generator and register it in the thread
-	    return std::make_unique<Stepgen>(threadFreq, joint, enable, step, dir, Config::stepBit, *ptrJointFreqCmd, *ptrJointFeedback, *ptrJointEnable, usesModulePost);
+	    return std::make_unique<Stepgen>(threadFreq, joint, enable, step, dir, Config::stepBit, *ptrJointFreqCmd, *ptrJointFeedback, *ptrJointEnable, usesModulePost, debug, debugFreq);
 	}
 
 /**
@@ -39,8 +42,10 @@ std::shared_ptr<Module> Stepgen::create(const JsonObject& config, Remora* instan
  * @param _ptrFrequencyCommand A reference to the frequency command data for the joint.
  * @param _ptrFeedback A reference to the feedback data for the joint.
  * @param _ptrJointEnable A reference to the joint enable data.
+ * @param _debug Enable debugging for the joint
+ * @param _debugFreq Debugging thread frequency for outputting
  */
-Stepgen::Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, const char* _step, const char* _direction, int _stepBit, volatile int32_t& _ptrFrequencyCommand, volatile int32_t& _ptrFeedback,  volatile uint8_t& _ptrJointEnable, bool _usesModulePost)
+Stepgen::Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, const char* _step, const char* _direction, int _stepBit, volatile int32_t& _ptrFrequencyCommand, volatile int32_t& _ptrFeedback,  volatile uint8_t& _ptrJointEnable, bool _usesModulePost, bool _debug, uint32_t _debugFreq)
     : jointNumber(_jointNumber),
       enable(_enable),
       step(_step),
@@ -61,6 +66,11 @@ Stepgen::Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, con
       isStepping(false)
 {
 	usesModulePost = _usesModulePost;
+    
+    if (_debug)
+    {
+        slowUpdateFreq = _debugFreq; // 10 times a second
+    }
 }
 
 /**
@@ -93,6 +103,14 @@ void Stepgen::updatePost()
 void Stepgen::slowUpdate()
 {
     // Currently no operation for slow update
+    printf("Joint %d - %s [%s, %s, %d, %ld]\n", 
+        this->jointNumber,
+        this->isEnabled ? "ON" : "OFF",
+        this->isForward ? "FW" : "REV",
+        this->isStepping ? "STEP" : "NO_STEP",
+        this->rawCount,
+        *ptrFeedback
+    );
 }
 
 /**
