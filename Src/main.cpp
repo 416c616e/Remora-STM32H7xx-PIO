@@ -54,7 +54,6 @@ int main(void)
 	// Enable  instruction cache
 	SCB_InvalidateICache();
 	SCB_EnableICache();
-  SCB_EnableDCache();
 
   __HAL_RCC_DMA1_CLK_ENABLE();
 

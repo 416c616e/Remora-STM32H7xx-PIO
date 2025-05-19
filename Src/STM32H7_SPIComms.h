@@ -40,6 +40,8 @@ private:
     bool						newWriteData;
 
     uint32_t                    dmaStatusCounts[4] = {0, 0, 0, 0};
+    uint32_t                    headerCounts[3] = {0, 0, 0};
+    uint32_t                    nssInterruptsCounts = 0;
 
 	HAL_StatusTypeDef startMultiBufferDMASPI(uint8_t*, uint8_t*, uint8_t*, uint8_t*, uint16_t);
 	int getActiveDMAmemory(DMA_HandleTypeDef*);
@@ -60,6 +62,8 @@ public:
 	void slowUpdate(void) override;
 
     uint32_t getDMAStatusCount(int index) { return this->dmaStatusCounts[index]; }
+    uint32_t getHeaderCount(int index) { return this->headerCounts[index]; }
+    uint32_t getNssInterruptCount() { return this->nssInterruptsCounts;}
 };
 
 #endif

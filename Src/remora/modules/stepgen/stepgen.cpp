@@ -1,4 +1,5 @@
 #include "stepgen.h"
+#include <STM32H7_SPIComms.h>
 
 
 std::shared_ptr<Module> Stepgen::create(const JsonObject& config, Remora* instance)
@@ -103,8 +104,10 @@ void Stepgen::slowUpdate()
 {
     if (debug)
     {
+        STM32H7_SPIComms* comms = (STM32H7_SPIComms*)this->remora->getCommsHandler()->getInterface();
+
         // Currently no operation for slow update
-        printf("Joint %d - %s [Pin=%s, Dir=%s, Stepping=%s, Count=%d, Raw=%ld, Cmd=%d, Scale=%f, Rx=%d, Tx=%d]\n\r", 
+        printf("Joint %d - %s [Pin=%s, Dir=%s, Stepping=%s, Count=%d, Raw=%ld, Cmd=%d, Scale=%f, Rx=%d, Tx=%d, Status=%d,%d,%d,%d, Header=%d,%d,%d, NSS=%d]\n\r", 
             this->jointNumber,
             this->isEnabled ? "ON" : "OFF",
             this->enablePin.get() ? "ON" : "OFF",
@@ -114,8 +117,16 @@ void Stepgen::slowUpdate()
             *ptrFeedback,
             *ptrFrequencyCommand,
             frequencyScale,
-            this->remora->getCommsHandler()->getInterface()->getRxCount(),
-            this->remora->getCommsHandler()->getInterface()->getTxCount()
+            comms->getRxCount(),
+            comms->getTxCount(),
+            comms->getDMAStatusCount(0),
+            comms->getDMAStatusCount(1),
+            comms->getDMAStatusCount(2),
+            comms->getDMAStatusCount(3),
+            comms->getHeaderCount(0),
+            comms->getHeaderCount(1),
+            comms->getHeaderCount(2),
+            comms->getNssInterruptCount()
         );
     }
 }

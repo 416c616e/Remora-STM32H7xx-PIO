@@ -6,7 +6,8 @@ volatile DMA_RxBuffer_t rxDMABuffer;
 STM32H7_SPIComms::STM32H7_SPIComms(volatile rxData_t* _ptrRxData, volatile txData_t* _ptrTxData, SPI_TypeDef* _spiType) :
 	ptrRxData(_ptrRxData),
 	ptrTxData(_ptrTxData),
-	spiType(_spiType)
+	spiType(_spiType),
+    nssInterruptsCounts(0)
 {
     spiHandle.Instance = spiType;
     ptrRxDMABuffer = &rxDMABuffer;
@@ -42,6 +43,10 @@ void STM32H7_SPIComms::init() {
     this->dmaStatusCounts[1] = 0;
     this->dmaStatusCounts[2] = 0;
     this->dmaStatusCounts[3] = 0;
+    this->headerCounts[0] = 0;
+    this->headerCounts[1] = 0;
+    this->headerCounts[2] = 0;
+    this->nssInterruptsCounts = 0;
 
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
@@ -102,7 +107,7 @@ void STM32H7_SPIComms::init() {
 	    GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
 	    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 	    GPIO_InitStruct.Pull = GPIO_NOPULL;
-	    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	    GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
 	    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
@@ -474,6 +479,7 @@ int STM32H7_SPIComms::getActiveDMAmemory(DMA_HandleTypeDef *hdma)
 
 void STM32H7_SPIComms::handleNssInterrupt()
 {
+    nssInterruptsCounts++;
 	// SPI packet has been fully received
 	// Flag the copy the RX buffer if new WRITE data has been received
 	// DMA copy is performed during the servo thread update
@@ -503,23 +509,24 @@ void STM32H7_SPIComms::handleRxInterrupt()
 
     if (interruptType == DMA_HALF_TRANSFER) // Use the HTC interrupt to check the packet being received
     {
-        SCB_InvalidateDCache_by_Addr((uint32_t*)&ptrRxDMABuffer->buffer[RxDMAmemoryIdx], sizeof(rxData_t));
-
         switch (ptrRxDMABuffer->buffer[RxDMAmemoryIdx].header)
         {
             case Config::pruRead:x
                 // No action needed for PRU_READ.
+                this->headerCounts[0]++;
             	dataCallback(true);
                 break;
 
             case Config::pruWrite:
             	// Valid PRU_WRITE header, flag RX data transfer.
+                this->headerCounts[1]++;
             	dataCallback(true);
             	newWriteData = true;
                 RXbufferIdx = RxDMAmemoryIdx;
                 break;
 
             default:
+                this->headerCounts[2]++;
             	dataCallback(false);
                 break;
         }
@@ -543,10 +550,6 @@ void STM32H7_SPIComms::tasks() {
 	    uint8_t* srcBuffer = (uint8_t*)ptrRxDMABuffer->buffer[RXbufferIdx].rxBuffer;
 	    uint8_t* destBuffer = (uint8_t*)ptrRxData->rxBuffer;
 
-        // Ensure data written by SPI DMA to srcBuffer is visible to the Mem-to-Mem DMA
-        // Note: Size should be actual data size, not necessarily full buffer if packet is smaller
-        SCB_InvalidateDCache_by_Addr((uint32_t*)srcBuffer, Config::dataBuffSize);
-
 	    __disable_irq();
 
 	    dmaStatus = HAL_DMA_Start(
@@ -563,9 +566,6 @@ void STM32H7_SPIComms::tasks() {
 	    }
 
 	    __enable_irq();
-
-        // Ensure data written by Mem-to-Mem DMA to destBuffer is visible to the CPU
-        SCB_InvalidateDCache_by_Addr((uint32_t*)destBuffer, Config::dataBuffSize);
 
 	    HAL_DMA_Abort(&hdma_memtomem);
 		copyRXbuffer = false;
