@@ -56,9 +56,9 @@
 
 /* External variables --------------------------------------------------------*/
 extern SD_HandleTypeDef hsd1;
-extern DMA_HandleTypeDef hdma_spi2_tx;
-extern DMA_HandleTypeDef hdma_spi2_rx;
-extern SPI_HandleTypeDef hspi2;
+extern DMA_HandleTypeDef hdma_spi_tx;
+extern DMA_HandleTypeDef hdma_spi_rx;
+extern SPI_HandleTypeDef hspi;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
