@@ -58,8 +58,6 @@ public:
     void init(void);
     void start(void);
     void tasks(void);
-    
-	void slowUpdate(void) override;
 
     uint32_t getDMAStatusCount(int index) { return this->dmaStatusCounts[index]; }
     uint32_t getHeaderCount(int index) { return this->headerCounts[index]; }

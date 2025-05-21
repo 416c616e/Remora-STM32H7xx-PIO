@@ -16,26 +16,12 @@ STM32H7_SPIComms::STM32H7_SPIComms(volatile rxData_t* _ptrRxData, volatile txDat
     irqDMAtx = DMA1_Stream0_IRQn;
     irqDMArx = DMA1_Stream1_IRQn;
 
-    updateCount = 40000;
-
     this->resetRxCount();
     this->resetTxCount();
 }
 
 STM32H7_SPIComms::~STM32H7_SPIComms() {
 
-}
-
-void STM32H7_SPIComms::slowUpdate()
-{
-    if (true)
-    {
-        printf("SPI Comms [rxCount=%d, txCount=%d, newData=%s]\n\r",
-            this->getRxCount(),
-            this->getTxCount(),
-            newWriteData ? "YES" : "NO"
-        );
-    }
 }
 
 void STM32H7_SPIComms::init() {
@@ -52,9 +38,6 @@ void STM32H7_SPIComms::init() {
 
     if(spiHandle.Instance == SPI2)
     {
-    	// Interrupt pin is the NSS pin
-        // Configure GPIO pin : PA_4
-
         #ifdef SPI2
         __HAL_RCC_GPIOB_CLK_ENABLE();
 

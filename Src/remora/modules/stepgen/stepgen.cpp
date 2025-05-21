@@ -56,9 +56,9 @@ Stepgen::Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, con
       ptrFrequencyCommand(&_ptrFrequencyCommand),
       ptrFeedback(&_ptrFeedback),
       ptrJointEnable(&_ptrJointEnable),
-	  enablePin(_enable, OUTPUT),
-      stepPin(_step, OUTPUT),
-      directionPin(_direction, OUTPUT),
+	  enablePin(_enable, OUTPUT, NONE),
+      stepPin(_step, OUTPUT, NONE),
+      directionPin(_direction, OUTPUT, NONE),
       rawCount(0),
       DDSaccumulator(0),
       frequencyScale(1.0f * (1 << _stepBit) / _threadFreq),  // Frequency scaling without unnecessary cast
@@ -107,7 +107,7 @@ void Stepgen::slowUpdate()
         STM32H7_SPIComms* comms = (STM32H7_SPIComms*)this->remora->getCommsHandler()->getInterface();
 
         // Currently no operation for slow update
-        printf("Joint %d - %s [Pin=%s, Dir=%s, Stepping=%s, Count=%d, Raw=%ld, Cmd=%d, Scale=%f, Rx=%d, Tx=%d, Status=%d,%d,%d,%d, Header=%d,%d,%d, NSS=%d]\n\r", 
+        printf("Joint %d - %s [Pin=%s, Dir=%s, Stepping=%s, Count=%d, Raw=%ld, Cmd=%d, DDSAV=%d, DDSACC=%d, Scale=%lf]\n\r", 
             this->jointNumber,
             this->isEnabled ? "ON" : "OFF",
             this->enablePin.get() ? "ON" : "OFF",
@@ -116,17 +116,9 @@ void Stepgen::slowUpdate()
             this->rawCount,
             *ptrFeedback,
             *ptrFrequencyCommand,
-            frequencyScale,
-            comms->getRxCount(),
-            comms->getTxCount(),
-            comms->getDMAStatusCount(0),
-            comms->getDMAStatusCount(1),
-            comms->getDMAStatusCount(2),
-            comms->getDMAStatusCount(3),
-            comms->getHeaderCount(0),
-            comms->getHeaderCount(1),
-            comms->getHeaderCount(2),
-            comms->getNssInterruptCount()
+            DDSaddValue,
+            DDSaccumulator,
+            frequencyScale
         );
     }
 }
@@ -143,11 +135,11 @@ void Stepgen::makePulses()
     isEnabled = ((*(ptrJointEnable) & mask) != 0);
     if (!isEnabled)
     {
-        enablePin.set(true);  	// Disable the driver if not enabled
+        enablePin.set(false);  	// Disable the driver if not enabled
         return;  				// Exit early if the generator is disabled
     }
 
-    enablePin.set(false); 		// Enable the driver
+    enablePin.set(true); 		// Enable the driver
 
     // Get the current frequency command and scale it using the frequency scale
     frequencyCommand = *ptrFrequencyCommand;

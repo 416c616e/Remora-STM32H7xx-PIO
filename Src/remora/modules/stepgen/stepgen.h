@@ -29,11 +29,11 @@ private:
 	volatile int32_t* ptrFeedback; 			/**< Pointer for feedback data */
 	volatile uint8_t* ptrJointEnable; 		/**< Pointer for joint enable data */
 
-	Pin enablePin, stepPin, directionPin; 	/**< Pins for controlling the motor's enable, step, and direction */
+	Pin 	enablePin, stepPin, directionPin; 	/**< Pins for controlling the motor's enable, step, and direction */
 
 	int32_t rawCount;              			/**< The current position raw count (not used yet) */
 	int32_t DDSaccumulator;        			/**< The Direct Digital Synthesis (DDS) accumulator */
-	float frequencyScale;          			/**< Frequency scale factor */
+	double frequencyScale;          			/**< Frequency scale factor */
 	int32_t frequencyCommand;      			/**< The frequency command from LinuxCNC */
 	int32_t DDSaddValue;           			/**< Value added to the DDS accumulator */
 

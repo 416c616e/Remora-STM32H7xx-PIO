@@ -1,7 +1,7 @@
 #include "tmc.h"
 #include <cstdint>
 
-#define TOFF_VALUE  4 // [1... 15]
+#define TOFF_VALUE  15 // [1... 15]
 
 std::shared_ptr<Module> TMC5160::create(const JsonObject& config, Remora* instance) {
     printf("Creating TMC5160 module\n\r");
@@ -53,7 +53,14 @@ void TMC5160::configure()
         }
         printf("Fix the problem and reset the board.\n\r");
     } else {
-        printf("OK\n\r");
+        if (true)
+        {
+            printf("OK - Driver Version: %i\n\r", driver->version());
+        }
+        else
+        {
+            printf("OK\n\r");
+        }
     }
 
     // Configure driver settings
