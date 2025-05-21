@@ -511,7 +511,7 @@ void STM32H7_SPIComms::handleRxInterrupt()
     {
         switch (ptrRxDMABuffer->buffer[RxDMAmemoryIdx].header)
         {
-            case Config::pruRead:x
+            case Config::pruRead:
                 // No action needed for PRU_READ.
                 this->headerCounts[0]++;
             	dataCallback(true);
