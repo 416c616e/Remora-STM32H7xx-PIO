@@ -97,12 +97,7 @@ void STM32H7_SPIComms::init() {
 		printf("Initialising GPIO for SPI\n\r");
 
 	    __HAL_RCC_GPIOB_CLK_ENABLE();
-	    /**SPI1 GPIO Configuration
-	    PA4     ------> SPI1_NSS
-	    PA5     ------> SPI1_SCK
-	    PA6     ------> SPI1_MISO
-	    PA7     ------> SPI1_MOSI
-	    */
+        
     	GPIO_InitStruct = {0};
 	    GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
 	    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -512,7 +507,7 @@ void STM32H7_SPIComms::handleRxInterrupt()
 
         switch (ptrRxDMABuffer->buffer[RxDMAmemoryIdx].header)
         {
-            case Config::pruRead:
+            case Config::pruRead:x
                 // No action needed for PRU_READ.
             	dataCallback(true);
                 break;

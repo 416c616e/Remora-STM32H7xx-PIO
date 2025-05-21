@@ -7,8 +7,8 @@
 extern "C" {
 
     void EXTI15_10_IRQHandler() {
-        if (__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_10) != RESET) {
-            __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_10);
+        if (__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_12) != RESET) {
+            __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_12);
             Interrupt::InvokeHandler(EXTI15_10_IRQn);
         }
     }
