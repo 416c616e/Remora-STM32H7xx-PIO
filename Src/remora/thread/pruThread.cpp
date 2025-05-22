@@ -16,7 +16,7 @@ void pruThread::setTimer(std::unique_ptr<pruTimer> _timer)
 bool pruThread::executeModules()
 {
     for (const auto& module : modules) if (module) module->runModule();
-    if (hasModulesPost) for (const auto& module : modulesPost) if (module) module->runModule();
+    if (hasModulesPost) for (const auto& module : modulesPost) if (module) module->runModulePost();
     return true;
 }
 
