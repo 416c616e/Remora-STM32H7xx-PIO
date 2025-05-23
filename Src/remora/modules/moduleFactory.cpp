@@ -27,6 +27,8 @@ std::shared_ptr<Module> ModuleFactory::createModule(const char* _tname,
    	        return TMC2208::create(config, instance);
    	    } else if (strcmp(_mtype, "TMC2209") == 0) {
     		return TMC2209::create(config, instance);
+    	} else if (strcmp(_mtype, "TMC2160") == 0) {
+    		return TMC2160::create(config, instance);
     	} else if (strcmp(_mtype, "TMC5160") == 0) {
     		return TMC5160::create(config, instance);
     	}

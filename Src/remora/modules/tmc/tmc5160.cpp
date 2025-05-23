@@ -105,13 +105,13 @@ void TMC5160::configure()
     // GCONF
     switch(this->mode)
     {
-        case TMC5160_MODE::STALLGUARD:
+        case TMC_MODE::STALLGUARD:
             driver->en_pwm_mode(false);
             break;
-        case TMC5160_MODE::STEALTHCHOP:
+        case TMC_MODE::STEALTHCHOP:
             driver->en_pwm_mode(true);
             break;
-        case TMC5160_MODE::COOLSTEP:
+        case TMC_MODE::COOLSTEP:
         default:
             driver->en_pwm_mode(false);
             break;
@@ -143,13 +143,13 @@ void TMC5160::configure()
     // PWMCONF
     switch(this->mode)
     {
-        case TMC5160_MODE::STALLGUARD:
+        case TMC_MODE::STALLGUARD:
             driver->pwm_autoscale(false);
             break;
-        case TMC5160_MODE::STEALTHCHOP:
+        case TMC_MODE::STEALTHCHOP:
             driver->pwm_autoscale(true);
             break;
-        case TMC5160_MODE::COOLSTEP:
+        case TMC_MODE::COOLSTEP:
         default:
             driver->pwm_autoscale(false);
             break;
