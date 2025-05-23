@@ -107,10 +107,16 @@ void TMC2160::configure()
         if (driver->otpw()) printf("  OTPW (Overtemp Prewarning)\n\r");
         if (driver->ot()) printf("  OT (Overtemperature)\n\r");
         if (driver->stst()) printf("  STST (Standstill)\n\r");
+
+        // Explicitly read and print IOIN register (raw value)
+        // The TMC2160Stepper class should have public constants for register addresses
+        // Assuming TMC2160Stepper::IOIN is the address (typically 0x06)
+        printf("Raw IOIN read: 0x%08lX (Expected version in bits 31:24)\n\r", driver->IOIN());
     }
 
     driver->GSTAT(0b111);
     driver->defaults();
+    driver->push();
     driver->microsteps(this->microsteps);
     driver->rms_current(mA, holdCurrent);
 

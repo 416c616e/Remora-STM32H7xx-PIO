@@ -66,7 +66,7 @@ void SoftwareSPI::setSPIMode(uint8_t mode) {
 }
 
 void SoftwareSPI::transfer(uint8_t* data, size_t length) {
-    if (cs) cs->set(false); // Pull CS low to start transaction
+    //if (cs) cs->set(false); // Pull CS low to start transaction
 
     for (size_t byteIdx = 0; byteIdx < length; byteIdx++) {
         size_t index = (byteOrder == MSB_FIRST_BYTE) ? byteIdx : (length - 1 - byteIdx);
@@ -98,5 +98,5 @@ void SoftwareSPI::transfer(uint8_t* data, size_t length) {
         data[index] = received;
     }
 
-    if (cs) cs->set(true); // Pull CS high to end transaction
+    //if (cs) cs->set(true); // Pull CS high to end transaction
 }

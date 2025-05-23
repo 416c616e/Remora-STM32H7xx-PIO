@@ -306,10 +306,6 @@ class TMC2130Stepper : public TMCStepper {
 		uint8_t status_response;
 
 	protected:
-		void beginTransaction();
-		void endTransaction();
-		uint8_t transfer(const uint8_t data);
-		void transferEmptyBytes(const uint8_t n);
 		void write(uint8_t addressByte, uint32_t config);
 		uint32_t read(uint8_t addressByte);
 

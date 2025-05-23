@@ -65,45 +65,17 @@ void TMC2130Stepper::switchCSpin(bool state) {
 }
 
 __attribute__((weak))
-void TMC2130Stepper::beginTransaction() {
-  if (TMC_SW_SPI == nullptr) {
-    //SPI.beginTransaction(SPISettings(spi_speed, MSBFIRST, SPI_MODE3));
-  }
-}
-__attribute__((weak))
-void TMC2130Stepper::endTransaction() {
-  if (TMC_SW_SPI == nullptr) {
-    //SPI.endTransaction();
-  }
-}
-
-__attribute__((weak))
-uint8_t TMC2130Stepper::transfer(const uint8_t data) {
-  uint8_t out = 0;
-  if (TMC_SW_SPI != nullptr) {
-    //out = TMC_SW_SPI->transfer(data);
-  }
-  else {
-    //out = SPI.transfer(data);
-  }
-  return out;
-}
-
-void TMC2130Stepper::transferEmptyBytes(const uint8_t n) {
-  for (uint8_t i = 0; i < n; i++) {
-    transfer(0x00);
-  }
-}
-
-__attribute__((weak))
 uint32_t TMC2130Stepper::read(uint8_t addressByte) {
     uint32_t out = 0;
     int8_t i = 1;
 
     if (!TMC_SW_SPI) return 0; // Ensure SPI instance is valid
 
-    beginTransaction();
-    if (cs) cs->set(false); // Pull CS low
+    if (cs) 
+    {
+        cs->set(false); // Pull CS low
+        TMC_SW_SPI->delay();
+    }
 
     uint8_t datagram[5] = { addressByte, 0, 0, 0, 0 };
     TMC_SW_SPI->transfer(datagram, 5); // Send address and receive response
@@ -114,8 +86,13 @@ uint32_t TMC2130Stepper::read(uint8_t addressByte) {
         i++;
     }
 
-    if (cs) cs->set(true); // Pull CS high
-    if (cs) cs->set(false); // Pull CS low again
+    if (cs)
+    {
+        cs->set(true); // Pull CS high
+        TMC_SW_SPI->delay();
+        cs->set(false); // Pull CS low again
+        TMC_SW_SPI->delay();
+    }
 
     while (i < chain_length) {
         uint8_t empty[5] = { 0 };
@@ -128,8 +105,11 @@ uint32_t TMC2130Stepper::read(uint8_t addressByte) {
 
     out = (response[1] << 24) | (response[2] << 16) | (response[3] << 8) | response[4];
 
-    endTransaction();
-    if (cs) cs->set(true); // Pull CS high
+    if (cs) 
+    {
+        cs->set(true); // Pull CS high
+        TMC_SW_SPI->delay();
+    }
 
     return out;
 }
@@ -141,8 +121,11 @@ void TMC2130Stepper::write(uint8_t addressByte, uint32_t config) {
 
     if (!TMC_SW_SPI) return; // Ensure SPI instance is valid
 
-    beginTransaction();
-    if (cs) cs->set(false); // Pull CS low
+    if (cs)
+    {
+        cs->set(false); // Pull CS low
+        TMC_SW_SPI->delay();
+    }
 
     uint8_t datagram[5] = { addressByte, (uint8_t)(config >> 24), (uint8_t)(config >> 16), (uint8_t)(config >> 8), (uint8_t)config };
     TMC_SW_SPI->transfer(datagram, 5); // Send data
@@ -153,8 +136,11 @@ void TMC2130Stepper::write(uint8_t addressByte, uint32_t config) {
         i++;
     }
 
-    endTransaction();
-    if (cs) cs->set(true); // Pull CS high
+    if (cs)
+    {
+        cs->set(true); // Pull CS high
+        TMC_SW_SPI->delay();
+    }
 }
 
 void TMC2130Stepper::begin() {
