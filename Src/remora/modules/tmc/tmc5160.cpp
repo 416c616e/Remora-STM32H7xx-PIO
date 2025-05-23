@@ -1,7 +1,44 @@
 #include "tmc.h"
 #include <cstdint>
 
-#define TOFF_VALUE  15 // [1... 15]
+// CHOPCONF
+#define TMC5160_INTPOL              1   // Step interpolation: 0 = off, 1 = on
+#define TMC5160_TOFF                5   // Off time: 1 - 15, 0 = MOSFET disable (8)
+#define TMC5160_TBL                 1   // Blanking time: 0 = 16, 1 = 24, 2 = 36, 3 = 54 clocks
+#define TMC5160_CHM                 0   // Chopper mode: 0 = spreadCycle, 1 = constant off time
+// TMC5160_CHM 0 defaults
+#define TMC5160_HSTRT               3   // Hysteresis start: 1 - 8
+#define TMC5160_HEND                5   // Hysteresis end: -3 - 12
+#define TMC5160_HMAX               16   // HSTRT + HEND
+// TMC5160_CHM 1 defaults
+#define TMC5160_TFD                 13  // fd3 & hstrt: 0 - 15
+
+// IHOLD_IRUN
+#define TMC5160_IHOLDDELAY          6
+
+// TPOWERDOWN
+#define TMC5160_TPOWERDOWN          128 // 0 - ((2^8)-1) * 2^18 tCLK
+
+// TPWMTHRS
+#define TMC5160_TPWM_THRS           0   // tpwmthrs: 0 - 2^20 - 1 (20 bits)
+
+// PWMCONF - StealthChop defaults
+#define TMC5160_PWM_FREQ            1   // 0 = 1/1024, 1 = 2/683, 2 = 2/512, 3 = 2/410 fCLK
+#define TMC5160_PWM_AUTOGRAD        1   // boolean (0 or 1)
+#define TMC5160_PWM_GRAD            14  // 0 - 255
+#define TMC5160_PWM_LIM             12  // 0 - 15
+#define TMC5160_PWM_REG             8   // 1 - 15
+#define TMC5160_PWM_OFS             36  // 0 - 255
+
+// TCOOLTHRS
+#define TMC5160_COOLSTEP_THRS       0   // tpwmthrs: 0 - 2^20 - 1 (20 bits)
+
+// COOLCONF - CoolStep defaults
+#define TMC5160_SEMIN               5   // 0 = coolStep off, 1 - 15 = coolStep on
+#define TMC5160_SEUP                0   // 0 - 3 (1 - 8)
+#define TMC5160_SEMAX               2   // 0 - 15
+#define TMC5160_SEDN                1   // 0 - 3
+#define TMC5160_SEIMIN              0   // boolean (0 or 1)
 
 std::shared_ptr<Module> TMC5160::create(const JsonObject& config, Remora* instance) {
     printf("Creating TMC5160 module\n\r");
@@ -13,17 +50,19 @@ std::shared_ptr<Module> TMC5160::create(const JsonObject& config, Remora* instan
     std::string pinMOSI = config["MOSI pin"];
     std::string pinMISO = config["MISO pin"];
     std::string pinSCK = config["SCK pin"];
-    float RSense = config["RSense"];
     uint8_t address = config["Address"];
-    uint16_t current = config["Current"];
-    uint16_t microsteps = config["Microsteps"];
-    uint16_t stall = config["Stall sensitivity"];
-    bool stealthchop = (strcmp(config["Stealth chop"], "on") == 0);
 
-    return std::make_shared<TMC5160>(std::move(pinCS), std::move(pinMOSI), std::move(pinMISO), std::move(pinSCK), RSense, address, current, microsteps, stealthchop, stall, instance);
+    float RSense = config["RSense"];
+    uint16_t current = config["Current"];
+    float holdCurrent = config["Hold current"];
+    uint16_t microsteps = config["Microsteps"];
+    uint8_t mode = config["Driver mode"];
+    uint16_t stall = config["Stall sensitivity"];
+
+    return std::make_shared<TMC5160>(std::move(pinCS), std::move(pinMOSI), std::move(pinMISO), std::move(pinSCK), RSense, address, current, microsteps, mode, stall, holdCurrent, instance);
 }
 
-TMC5160::TMC5160(std::string _pinCS, std::string _pinMOSI, std::string _pinMISO, std::string _pinSCK, float _Rsense, uint8_t _addr, uint16_t _mA, uint16_t _microsteps, bool _stealth, uint16_t _stall, Remora* _instance)
+TMC5160::TMC5160(std::string _pinCS, std::string _pinMOSI, std::string _pinMISO, std::string _pinSCK, float _Rsense, uint8_t _addr, uint16_t _mA, uint16_t _microsteps, uint8_t _mode, uint16_t _stall, float _holdCurrent, Remora* _instance)
     : TMC{_instance, _Rsense},  // Call base class constructor
       pinCS(std::move(_pinCS)),
 	  pinMOSI(std::move(_pinMOSI)),
@@ -32,8 +71,9 @@ TMC5160::TMC5160(std::string _pinCS, std::string _pinMOSI, std::string _pinMISO,
       addr(_addr),
       mA(_mA),
       microsteps(_microsteps),
-      stealth(_stealth),
+      mode(_mode),
       stall(_stall),
+      holdCurrent(_holdCurrent),
       driver(std::make_unique<TMC5160Stepper>(pinCS, _Rsense, pinMOSI, pinMISO, pinSCK)) {}
 
 
@@ -53,35 +93,78 @@ void TMC5160::configure()
         }
         printf("Fix the problem and reset the board.\n\r");
     } else {
-        if (true)
-        {
-            printf("OK - Driver Version: %i\n\r", driver->version());
-        }
-        else
-        {
-            printf("OK\n\r");
-        }
+        printf("OK - Driver Version: %i\n\r", driver->version());
     }
 
-    // Configure driver settings
-    driver->toff(TOFF_VALUE);
-    driver->blank_time(24);
-    driver->rms_current(mA);
-    driver->microsteps(microsteps);
-    driver->TCOOLTHRS(0xFFFFF);  // 20-bit max threshold for smart energy CoolStep
-    driver->semin(5);             // CoolStep lower threshold
-    driver->semax(2);             // CoolStep upper threshold
-    driver->sedn(0b01);           // CoolStep decrement rate
-    //driver->en_spreadCycle(!stealth);
-    driver->pwm_autoscale(true);
+    driver->GSTAT();
+    driver->microsteps(this->microsteps);
+    driver->rms_current(mA, holdCurrent);
 
-    if (stealth && stall) {
-        // StallGuard sensitivity threshold (higher = more sensitive)
-        //driver->SGTHRS(stall);
+    // GCONF
+    switch(this->mode)
+    {
+        case TMC5160_MODE::STALLGUARD:
+            driver->en_pwm_mode(false);
+            break;
+        case TMC5160_MODE::STEALTHCHOP:
+            driver->en_pwm_mode(true);
+            break;
+        case TMC5160_MODE::COOLSTEP:
+        default:
+            driver->en_pwm_mode(false);
+            break;
     }
 
-    driver->iholddelay(10);
-    driver->TPOWERDOWN(128);  // ~2s until driver lowers to hold current
+    // CHOPCONF
+    driver->intpol(TMC5160_INTPOL);
+    driver->toff(TMC5160_TOFF);
+    driver->tbl(TMC5160_TBL);
+    driver->chm(TMC5160_CHM);
+    driver->hend(TMC5160_HEND + 3);
+
+    // CHM
+    #if TMC5160_CHM == 0
+        driver->hstrt(TMC5160_HSTRT - 1);
+    #else
+        driver->fd3((TMC5160_TFD & 0x08) >> 3);
+        driver->hstrt(TMC5160_TFD & 0x07);
+    #endif
+
+    // COOLCONF
+    driver->semin(TMC5160_SEMIN);
+    driver->seup(TMC5160_SEUP);
+    driver->semax(TMC5160_SEMAX);
+    driver->sedn(TMC5160_SEDN);
+    driver->seimin(TMC5160_SEMIN);
+    driver->TCOOLTHRS(TMC5160_COOLSTEP_THRS);
+    
+    // PWMCONF
+    switch(this->mode)
+    {
+        case TMC5160_MODE::STALLGUARD:
+            driver->pwm_autoscale(false);
+            break;
+        case TMC5160_MODE::STEALTHCHOP:
+            driver->pwm_autoscale(true);
+            break;
+        case TMC5160_MODE::COOLSTEP:
+        default:
+            driver->pwm_autoscale(false);
+            break;
+    }
+    driver->pwm_lim(TMC5160_PWM_LIM);
+    driver->pwm_reg(TMC5160_PWM_REG);
+    driver->pwm_autograd(TMC5160_PWM_AUTOGRAD);
+    driver->pwm_freq(TMC5160_PWM_FREQ);
+    driver->pwm_grad(TMC5160_PWM_GRAD);
+    driver->pwm_ofs(TMC5160_PWM_OFS);
+
+    // OTHERS
+    driver->iholddelay(TMC5160_IHOLDDELAY);
+    driver->TPOWERDOWN(TMC5160_TPOWERDOWN);
+    driver->TPWMTHRS(TMC5160_TPWM_THRS);
+
+    printf( "CHOPCONF reports %d\n\r", driver->CHOPCONF());
 }
 
 void TMC5160::update(){}

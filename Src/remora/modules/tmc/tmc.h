@@ -72,7 +72,6 @@ public:
     void update(void) override;
     void configure(void) override;
 };
-
 class TMC5160 : public TMC
 {
 protected:
@@ -84,19 +83,30 @@ protected:
 	uint8_t     addr;
 	uint16_t    mA;
 	uint16_t    microsteps;
-	bool        stealth;
+	uint8_t     mode;
 	uint16_t    stall;
+	float     holdCurrent;
 
 	std::unique_ptr<TMC5160Stepper> driver;
 
 public:
 
-	TMC5160(std::string, std::string, std::string, std::string, float, uint8_t, uint16_t, uint16_t, bool, uint16_t, Remora*);
+	TMC5160(std::string, std::string, std::string, std::string, float, uint8_t, uint16_t, uint16_t, uint8_t, uint16_t, float, Remora*);
 	static std::shared_ptr<Module> create(const JsonObject& config, Remora* instance);
 	~TMC5160() = default;
 
     void update(void) override;
     void configure(void) override;
+};
+
+class TMC5160_MODE
+{
+public:
+	enum {
+		COOLSTEP = 0,
+		STEALTHCHOP = 1,
+		STALLGUARD = 2
+	};
 };
 
 #endif
