@@ -62,6 +62,8 @@ int main(void)
 	MX_SDMMC1_SD_Init();
 	MX_FATFS_Init();
 
+  HAL_Delay(5000); // Give time on cold boot for full power up
+
   auto comms = std::make_unique<STM32H7_SPIComms>(&rxData, &txData, SPI2);
 	auto commsHandler = std::make_shared<CommsHandler>();
 	commsHandler->setInterface(std::move(comms));

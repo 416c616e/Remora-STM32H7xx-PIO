@@ -96,7 +96,9 @@ void TMC5160::configure()
         printf("OK - Driver Version: %i\n\r", driver->version());
     }
 
+    driver->reset();
     driver->GSTAT();
+    driver->reset();
     driver->microsteps(this->microsteps);
     driver->rms_current(mA, holdCurrent);
 
@@ -165,6 +167,8 @@ void TMC5160::configure()
     driver->TPWMTHRS(TMC5160_TPWM_THRS);
 
     printf( "CHOPCONF reports %d\n\r", driver->CHOPCONF());
+    printf( "drv_err reports %d\n\r", driver->drv_err());
+    printf( "uv_cp reports %d\n\r", driver->uv_cp());
 }
 
 void TMC5160::update(){}
