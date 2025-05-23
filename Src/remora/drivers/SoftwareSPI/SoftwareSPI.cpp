@@ -14,7 +14,7 @@ SoftwareSPI::SoftwareSPI(const std::string& mosiPin, const std::string& misoPin,
       miso(misoPin, INPUT),
       clk(clkPin, OUTPUT),
       cs(nullptr),
-      delayTicks(2),
+      delayTicks(8),
       bitOrder(bitOrder),
       byteOrder(byteOrder) {
 	setSPIMode(mode);
@@ -27,7 +27,7 @@ SoftwareSPI::SoftwareSPI(const std::string& mosiPin, const std::string& misoPin,
       miso(misoPin, INPUT, PULLUP),
       clk(clkPin, OUTPUT),
       cs(new Pin(csPin, OUTPUT)), // Dynamically allocate CS pin
-      delayTicks(2),
+      delayTicks(8),
       bitOrder(bitOrder),
       byteOrder(byteOrder)
 {
