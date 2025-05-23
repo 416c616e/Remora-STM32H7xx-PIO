@@ -84,7 +84,7 @@ void TMC2160::configure()
     printf("Testing connection to TMC driver... ");
     uint16_t result = driver->test_connection();
     
-    if (result) {
+    if (result != 0) {
         printf("Failed!\nLikely cause: ");
         switch(result) {
             case 1: printf("Loose connection\n\r"); break;
@@ -94,11 +94,20 @@ void TMC2160::configure()
         printf("Fix the problem and reset the board.\n\r");
     } else {
         printf("OK - Driver Version: %i\n\r", driver->version());
+
+        uint32_t drv_status_val = driver->DRV_STATUS();
+        printf("DRV_STATUS: 0x%08lX\n\r", drv_status_val);
+
+        if (drv_status_val & (1<<7)) printf("  OLA (Open Load A)\n\r");
+        if (drv_status_val & (1<<6)) printf("  OLB (Open Load B)\n\r");
+        if (drv_status_val & (1<<5)) printf("  S2GA (Short to Gnd A)\n\r");
+        if (drv_status_val & (1<<4)) printf("  S2GB (Short to Gnd B)\n\r");
+        if (drv_status_val & (1<<1)) printf("  OTPW (Overtemp Prewarning)\n\r");
+        if (drv_status_val & (1<<0)) printf("  OT (Overtemperature)\n\r");
     }
 
     driver->reset();
-    driver->GSTAT();
-    driver->reset();
+    driver->GSTAT(0b111);
     driver->defaults();
     driver->microsteps(this->microsteps);
     driver->rms_current(mA, holdCurrent);
@@ -138,7 +147,7 @@ void TMC2160::configure()
     driver->seup(TMC2160_SEUP);
     driver->semax(TMC2160_SEMAX);
     driver->sedn(TMC2160_SEDN);
-    driver->seimin(TMC2160_SEMIN);
+    driver->seimin(TMC2160_SEIMIN);
     driver->TCOOLTHRS(TMC2160_COOLSTEP_THRS);
     
     // PWMCONF
@@ -170,6 +179,18 @@ void TMC2160::configure()
     printf( "CHOPCONF reports %d\n\r", driver->CHOPCONF());
     printf( "drv_err reports %d\n\r", driver->drv_err());
     printf( "uv_cp reports %d\n\r", driver->uv_cp());
+
+    // Read back and print key configurations
+    printf("--- Final Configuration Readback ---\n\r");
+    printf("GCONF:      0x%08lX\n\r", driver->GCONF());
+    printf("CHOPCONF:   0x%08lX\n\r", driver->CHOPCONF());
+    printf("IHOLD_IRUN: 0x%08lX\n\r", driver->IHOLD_IRUN());
+    printf("PWMCONF:    0x%08lX\n\r", driver->PWMCONF());
+    printf("COOLCONF:   0x%08lX\n\r", driver->COOLCONF());
+    printf("GLOBALSCALER: %u\n\r", driver->GLOBAL_SCALER());
+    printf("GSTAT (after config): 0x%02X (Reset: %d, drv_err: %d, uv_cp: %d)\n\r",
+           (uint8_t)driver->GSTAT(), driver->reset(), driver->drv_err(), driver->uv_cp());
+    printf("DRV_STATUS (after config): 0x%08lX\n\r", driver->DRV_STATUS());
 }
 
 void TMC2160::update(){}

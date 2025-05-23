@@ -98,7 +98,6 @@ void TMC5160::configure()
 
     driver->reset();
     driver->GSTAT();
-    driver->reset();
     driver->defaults();
     driver->microsteps(this->microsteps);
     driver->rms_current(mA, holdCurrent);
@@ -138,7 +137,7 @@ void TMC5160::configure()
     driver->seup(TMC5160_SEUP);
     driver->semax(TMC5160_SEMAX);
     driver->sedn(TMC5160_SEDN);
-    driver->seimin(TMC5160_SEMIN);
+    driver->seimin(TMC5160_SEIMIN);
     driver->TCOOLTHRS(TMC5160_COOLSTEP_THRS);
     
     // PWMCONF
