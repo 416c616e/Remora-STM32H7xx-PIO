@@ -6,8 +6,7 @@ volatile DMA_RxBuffer_t rxDMABuffer;
 STM32H7_SPIComms::STM32H7_SPIComms(volatile rxData_t* _ptrRxData, volatile txData_t* _ptrTxData, SPI_TypeDef* _spiType) :
 	ptrRxData(_ptrRxData),
 	ptrTxData(_ptrTxData),
-	spiType(_spiType),
-    nssInterruptsCounts(0)
+	spiType(_spiType)
 {
     spiHandle.Instance = spiType;
     ptrRxDMABuffer = &rxDMABuffer;
@@ -15,9 +14,6 @@ STM32H7_SPIComms::STM32H7_SPIComms(volatile rxData_t* _ptrRxData, volatile txDat
     irqNss = EXTI15_10_IRQn;
     irqDMAtx = DMA1_Stream0_IRQn;
     irqDMArx = DMA1_Stream1_IRQn;
-
-    this->resetRxCount();
-    this->resetTxCount();
 }
 
 STM32H7_SPIComms::~STM32H7_SPIComms() {
@@ -25,15 +21,6 @@ STM32H7_SPIComms::~STM32H7_SPIComms() {
 }
 
 void STM32H7_SPIComms::init() {
-    this->dmaStatusCounts[0] = 0;
-    this->dmaStatusCounts[1] = 0;
-    this->dmaStatusCounts[2] = 0;
-    this->dmaStatusCounts[3] = 0;
-    this->headerCounts[0] = 0;
-    this->headerCounts[1] = 0;
-    this->headerCounts[2] = 0;
-    this->nssInterruptsCounts = 0;
-
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
     if(spiHandle.Instance == SPI2)
@@ -145,9 +132,6 @@ void STM32H7_SPIComms::init() {
 }
 
 void STM32H7_SPIComms::start() {
-    this->resetRxCount();
-    this->resetTxCount();
-
     // Register the NSS (slave select) interrupt
     NssInterrupt = new ModuleInterrupt<STM32H7_SPIComms>(
         irqNss,
@@ -462,7 +446,6 @@ int STM32H7_SPIComms::getActiveDMAmemory(DMA_HandleTypeDef *hdma)
 
 void STM32H7_SPIComms::handleNssInterrupt()
 {
-    nssInterruptsCounts++;
 	// SPI packet has been fully received
 	// Flag the copy the RX buffer if new WRITE data has been received
 	// DMA copy is performed during the servo thread update
@@ -475,16 +458,12 @@ void STM32H7_SPIComms::handleNssInterrupt()
 
 void STM32H7_SPIComms::handleTxInterrupt()
 {
-    this->incTxCount();
-
 	DMA_IRQHandler(&hdma_spi_tx);
 	HAL_NVIC_EnableIRQ(irqDMAtx);
 }
 
 void STM32H7_SPIComms::handleRxInterrupt()
 {
-    this->incRxCount();
-
     // Handle the interrupt and determine the type of interrupt
     interruptType = DMA_IRQHandler(&hdma_spi_rx);
 
@@ -496,20 +475,17 @@ void STM32H7_SPIComms::handleRxInterrupt()
         {
             case Config::pruRead:
                 // No action needed for PRU_READ.
-                this->headerCounts[0]++;
             	dataCallback(true);
                 break;
 
             case Config::pruWrite:
             	// Valid PRU_WRITE header, flag RX data transfer.
-                this->headerCounts[1]++;
             	dataCallback(true);
             	newWriteData = true;
                 RXbufferIdx = RxDMAmemoryIdx;
                 break;
 
             default:
-                this->headerCounts[2]++;
             	dataCallback(false);
                 break;
         }
@@ -541,8 +517,6 @@ void STM32H7_SPIComms::tasks() {
 									(uint32_t)destBuffer,
 									Config::dataBuffSize
 	    							);
-
-        this->dmaStatusCounts[dmaStatus]++;
 
 	    if (dmaStatus == HAL_OK) {
 	        dmaStatus = HAL_DMA_PollForTransfer(&hdma_memtomem, HAL_DMA_FULL_TRANSFER, HAL_MAX_DELAY);
