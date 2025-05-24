@@ -38,6 +38,8 @@ public:
     void setSPIMode(uint8_t mode);
     void setClockDivider(uint32_t div);
     void transfer(uint8_t* data, size_t length);
+    uint8_t transfer(uint8_t value);
+    void transferEmptyBytes(uint8_t n);
     void delay();
 };
 

@@ -116,7 +116,7 @@ void TMC2160::configure()
 
     driver->GSTAT(0b111);
     driver->defaults();
-    driver->push();
+    //driver->push();
     driver->microsteps(this->microsteps);
     driver->rms_current(mA, holdCurrent);
 

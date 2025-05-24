@@ -66,7 +66,7 @@ void TMC2130Stepper::switchCSpin(bool state) {
 
 __attribute__((weak))
 uint32_t TMC2130Stepper::read(uint8_t addressByte) {
-    uint32_t out = 0;
+    uint32_t out = 0UL;
     int8_t i = 1;
 
     if (!TMC_SW_SPI) return 0; // Ensure SPI instance is valid
@@ -77,33 +77,30 @@ uint32_t TMC2130Stepper::read(uint8_t addressByte) {
         TMC_SW_SPI->delay();
     }
 
-    uint8_t datagram[5] = { addressByte, 0, 0, 0, 0 };
-    TMC_SW_SPI->transfer(datagram, 5); // Send address and receive response
+    TMC_SW_SPI->transfer(addressByte);
+    TMC_SW_SPI->transferEmptyBytes(4);
 
-    while (i < link_index) {
-        uint8_t empty[5] = { 0 };
-        TMC_SW_SPI->transfer(empty, 5); // Shift data for multi-driver chains
+    while(i < link_index) {
+        TMC_SW_SPI->transferEmptyBytes(5);
         i++;
     }
 
-    if (cs)
+    if (cs) 
     {
         cs->set(true); // Pull CS high
         TMC_SW_SPI->delay();
-        cs->set(false); // Pull CS low again
+        cs->set(false); // Pull CS low
         TMC_SW_SPI->delay();
     }
 
-    while (i < chain_length) {
-        uint8_t empty[5] = { 0 };
-        TMC_SW_SPI->transfer(empty, 5);
-        i++;
-    }
-
-    uint8_t response[5] = { addressByte, 0, 0, 0, 0 };
-    TMC_SW_SPI->transfer(response, 5); // Read response
-
-    out = (response[1] << 24) | (response[2] << 16) | (response[3] << 8) | response[4];
+    status_response = TMC_SW_SPI->transfer(addressByte); // Send the address byte again
+    out  = TMC_SW_SPI->transfer(0x00);
+    out <<= 8;
+    out |= TMC_SW_SPI->transfer(0x00);
+    out <<= 8;
+    out |= TMC_SW_SPI->transfer(0x00);
+    out <<= 8;
+    out |= TMC_SW_SPI->transfer(0x00);
 
     if (cs) 
     {
@@ -127,12 +124,16 @@ void TMC2130Stepper::write(uint8_t addressByte, uint32_t config) {
         TMC_SW_SPI->delay();
     }
 
-    uint8_t datagram[5] = { addressByte, (uint8_t)(config >> 24), (uint8_t)(config >> 16), (uint8_t)(config >> 8), (uint8_t)config };
-    TMC_SW_SPI->transfer(datagram, 5); // Send data
+    status_response = TMC_SW_SPI->transfer(addressByte);
+    TMC_SW_SPI->transfer(config>>24);
+    TMC_SW_SPI->transfer(config>>16);
+    TMC_SW_SPI->transfer(config>>8);
+    TMC_SW_SPI->transfer(config);
 
-    while (i < link_index) {
-        uint8_t empty[5] = { 0 };
-        TMC_SW_SPI->transfer(empty, 5);
+    // Shift the written data to the correct driver in chain
+    // Default link_index = -1 and no shifting happens
+    while(i < link_index) {
+        TMC_SW_SPI->transferEmptyBytes(5);
         i++;
     }
 
