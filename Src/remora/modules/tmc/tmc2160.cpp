@@ -93,25 +93,19 @@ void TMC2160::configure()
         }
         printf("Fix the problem and reset the board.\n\r");
     } else {
-        printf("OK - Driver Version: %i\n\r", driver->version());
+        printf("OK - Version: %i, DRV_STATUS: 0x%08lX\n\r", driver->version(), driver->DRV_STATUS());
 
-        // Use library accessors for DRV_STATUS flags for better accuracy
-        printf("\tInitial DRV_STATUS: 0x%08lX\n\r", driver->DRV_STATUS());
-        if (driver->ola()) printf("\tOLA (Open Load A)\n\r");
-        if (driver->olb()) printf("\tOLB (Open Load B)\n\r");
+        if (driver->ola())  printf("\tOLA (Open Load A)\n\r");
+        if (driver->olb())  printf("\tOLB (Open Load B)\n\r");
         if (driver->s2ga()) printf("\tS2GA (Short to Gnd A)\n\r");
         if (driver->s2gb()) printf("\tS2GB (Short to Gnd B)\n\r");
-        
-        // Note: TMC2160 DRV_STATUS has S2VSA and S2VSB, not directly in TMC2130 base class.
-        // The TMC2130 base class accessors for s2ga/s2gb might map to the correct bits for 2160.
         if (driver->otpw()) printf("\tOTPW (Overtemp Prewarning)\n\r");
-        if (driver->ot()) printf("\tOT (Overtemperature)\n\r");
+        if (driver->ot())   printf("\tOT (Overtemperature)\n\r");
         if (driver->stst()) printf("\tSTST (Standstill)\n\r");
     }
 
     driver->GSTAT(0b111);
     driver->defaults();
-    //driver->push();
     driver->microsteps(this->microsteps);
     driver->rms_current(mA, holdCurrent);
 
@@ -178,27 +172,6 @@ void TMC2160::configure()
     driver->iholddelay(TMC2160_IHOLDDELAY);
     driver->TPOWERDOWN(TMC2160_TPOWERDOWN);
     driver->TPWMTHRS(TMC2160_TPWM_THRS);
-
-    // // Read back and print key configurations
-    // printf("--- Final Configuration Readback ---\n\r");
-    // printf("GCONF:      0x%08lX\n\r", driver->GCONF());
-    // printf("CHOPCONF:   0x%08lX\n\r", driver->CHOPCONF());
-    // printf("IHOLD_IRUN: 0x%08lX\n\r", driver->IHOLD_IRUN());
-    // printf("PWMCONF:    0x%08lX\n\r", driver->PWMCONF());
-    // printf("COOLCONF:   0x%08lX\n\r", driver->COOLCONF());
-    // printf("GLOBALSCALER: %u\n\r", driver->GLOBAL_SCALER());
-    // printf("GSTAT (after config): 0x%02X (Reset: %d, drv_err: %d, uv_cp: %d)\n\r",
-    //        (uint8_t)driver->GSTAT(), driver->reset(), driver->drv_err(), driver->uv_cp());
-    
-    // uint32_t final_drv_status = driver->DRV_STATUS();
-    // printf("DRV_STATUS (after config): 0x%08lX\n\r", final_drv_status);
-    // if (driver->s2ga()) printf("  S2GA (Short to Gnd A) active\n\r");
-    // if (driver->s2gb()) printf("  S2GB (Short to Gnd B) active\n\r");
-    // if (driver->ola())  printf("  OLA (Open Load A) active\n\r");
-    // if (driver->olb())  printf("  OLB (Open Load B) active\n\r");
-    // if (driver->otpw()) printf("  OTPW (Overtemp Prewarning) active\n\r");
-    // if (driver->ot())   printf("  OT (Overtemperature) active\n\r");
-    // if (driver->stst()) printf("  STST (Standstill) active\n\r");
 }
 
 void TMC2160::update(){}

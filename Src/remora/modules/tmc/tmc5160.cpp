@@ -84,7 +84,7 @@ void TMC5160::configure()
     printf("Testing connection to TMC driver... ");
     uint16_t result = driver->test_connection();
     
-    if (result) {
+    if (result != 0) {
         printf("Failed!\nLikely cause: ");
         switch(result) {
             case 1: printf("Loose connection\n\r"); break;
@@ -93,11 +93,18 @@ void TMC5160::configure()
         }
         printf("Fix the problem and reset the board.\n\r");
     } else {
-        printf("OK - Driver Version: %i\n\r", driver->version());
+        printf("OK - Version: %i, DRV_STATUS: 0x%08lX\n\r", driver->version(), driver->DRV_STATUS());
+
+        if (driver->ola())  printf("\tOLA (Open Load A)\n\r");
+        if (driver->olb())  printf("\tOLB (Open Load B)\n\r");
+        if (driver->s2ga()) printf("\tS2GA (Short to Gnd A)\n\r");
+        if (driver->s2gb()) printf("\tS2GB (Short to Gnd B)\n\r");
+        if (driver->otpw()) printf("\tOTPW (Overtemp Prewarning)\n\r");
+        if (driver->ot())   printf("\tOT (Overtemperature)\n\r");
+        if (driver->stst()) printf("\tSTST (Standstill)\n\r");
     }
 
-    driver->reset();
-    driver->GSTAT();
+    driver->GSTAT(0b111);
     driver->defaults();
     driver->microsteps(this->microsteps);
     driver->rms_current(mA, holdCurrent);
@@ -165,10 +172,6 @@ void TMC5160::configure()
     driver->iholddelay(TMC5160_IHOLDDELAY);
     driver->TPOWERDOWN(TMC5160_TPOWERDOWN);
     driver->TPWMTHRS(TMC5160_TPWM_THRS);
-
-    printf( "CHOPCONF reports %d\n\r", driver->CHOPCONF());
-    printf( "drv_err reports %d\n\r", driver->drv_err());
-    printf( "uv_cp reports %d\n\r", driver->uv_cp());
 }
 
 void TMC5160::update(){}

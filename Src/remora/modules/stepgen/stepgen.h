@@ -21,6 +21,7 @@ private:
 
 	int jointNumber;               			/**< LinuxCNC joint number */
 	const char* enable;            			/**< Pin for enabling the stepper motor */
+	const bool  enableInvert;			/**< Invert the enable pin behavior */
 	const char* step;              			/**< Pin for generating step pulses */
 	const char* direction;         			/**< Pin for setting direction */
 	int32_t stepBit;               			/**< Position in the DDS accumulator that triggers a step pulse */
@@ -51,7 +52,7 @@ private:
 
 public:
 
-	Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, const char* _step, const char* _direction, int _stepBit, volatile int32_t &_ptrFrequencyCommand, volatile int32_t &_ptrFeedback, volatile uint8_t &_ptrJointEnable, bool _usesModulePost, bool _debug, uint32_t _debugFreq, Remora* instance);
+	Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, bool _enableInvert, const char* _step, const char* _direction, int _stepBit, volatile int32_t &_ptrFrequencyCommand, volatile int32_t &_ptrFeedback, volatile uint8_t &_ptrJointEnable, bool _usesModulePost, bool _debug, uint32_t _debugFreq, Remora* instance);
 	static std::shared_ptr<Module> create(const JsonObject& config, Remora* instance);
 
 	void update(void) override;
