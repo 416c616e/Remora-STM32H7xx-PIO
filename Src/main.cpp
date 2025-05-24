@@ -31,7 +31,6 @@ SD_HandleTypeDef hsd1;
 UART_HandleTypeDef huart1;
 
 void SystemClock_Config(void);
-void PeriphCommonClock_Config(void);
 static void MPU_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
@@ -51,7 +50,6 @@ int main(void)
 	MPU_Config();
 	HAL_Init();
 	SystemClock_Config();
-	PeriphCommonClock_Config();
 
 	// Enable  instruction cache
 	SCB_InvalidateICache();
@@ -64,7 +62,9 @@ int main(void)
 	MX_SDMMC1_SD_Init();
 	MX_FATFS_Init();
 
-  auto comms = std::make_unique<STM32H7_SPIComms>(&rxData, &txData, SPI1);
+  HAL_Delay(5000); // Give time on cold boot for full power up
+
+  auto comms = std::make_unique<STM32H7_SPIComms>(&rxData, &txData, SPI2);
 	auto commsHandler = std::make_shared<CommsHandler>();
 	commsHandler->setInterface(std::move(comms));
 
@@ -88,9 +88,15 @@ int main(void)
   */
 void SystemClock_Config(void)
 {
+  // Clock configuration
+  // from grblhal
+  // - 480MHZ system clock
+
+  // WeAct MiniSTM32H7xx & BTT SKR3 using 25MHz crystal
+  // Nucleo dev board using 8MHz clock source (STLink MCO)
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
   /** Supply configuration update enable
   */
   HAL_PWREx_ConfigSupply(PWR_LDO_SUPPLY);
@@ -113,18 +119,115 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 5;
-  RCC_OscInitStruct.PLL.PLLN = 192;
-  RCC_OscInitStruct.PLL.PLLP = 2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
-  RCC_OscInitStruct.PLL.PLLR = 2;
-  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
-  RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
-  RCC_OscInitStruct.PLL.PLLFRACN = 0;
+#if defined(STM32H743xx)
+  #if defined(NUCLEO_H743) // Nucleo H743 dev board with 8MHz clock source
+
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLM = 2;
+    RCC_OscInitStruct.PLL.PLLN = 240;
+    RCC_OscInitStruct.PLL.PLLP = 2;
+    RCC_OscInitStruct.PLL.PLLQ = 20;
+    RCC_OscInitStruct.PLL.PLLR = 2;
+    RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
+    RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
+    RCC_OscInitStruct.PLL.PLLFRACN = 0;
+
+    PeriphClkInitStruct.PLL2.PLL2M = 2;
+    PeriphClkInitStruct.PLL2.PLL2N = 240;
+    PeriphClkInitStruct.PLL2.PLL2P = 2;
+    PeriphClkInitStruct.PLL2.PLL2Q = 20;
+    PeriphClkInitStruct.PLL2.PLL2R = 80;
+    PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL1VCIRANGE_2;
+    PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL1VCOWIDE;
+    PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
+
+    #define FLASH_LATENCY FLASH_LATENCY_4
+
+  #else // Common configuration for all other H743 boards with 25MHz crystals
+
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLM = 5;
+    RCC_OscInitStruct.PLL.PLLN = 192;
+    RCC_OscInitStruct.PLL.PLLP = 2;
+    RCC_OscInitStruct.PLL.PLLQ = 4;
+    RCC_OscInitStruct.PLL.PLLR = 2;
+    RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
+    RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
+    RCC_OscInitStruct.PLL.PLLFRACN = 0;
+
+    PeriphClkInitStruct.PLL2.PLL2M = 2;
+    PeriphClkInitStruct.PLL2.PLL2N = 12;
+    PeriphClkInitStruct.PLL2.PLL2P = 1;
+    PeriphClkInitStruct.PLL2.PLL2Q = 10;
+    PeriphClkInitStruct.PLL2.PLL2R = 2;
+    PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_3;
+    PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOMEDIUM;
+    PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
+
+    #define FLASH_LATENCY FLASH_LATENCY_4
+
+  #endif // H743 other boards
+
+#elif defined (STM32H723xx)
+  #if defined(NUCLEO_H723) //  // Nucleo H723 dev board with 8MHz clock source
+
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLM = 2;
+    RCC_OscInitStruct.PLL.PLLN = 120;
+    RCC_OscInitStruct.PLL.PLLP = 1;
+    RCC_OscInitStruct.PLL.PLLQ = 10;
+    RCC_OscInitStruct.PLL.PLLR = 1;
+    RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
+    RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
+    RCC_OscInitStruct.PLL.PLLFRACN = 0;
+
+    PeriphClkInitStruct.PLL2.PLL2M = 2;
+    PeriphClkInitStruct.PLL2.PLL2N = 120;
+    PeriphClkInitStruct.PLL2.PLL2P = 1;
+    PeriphClkInitStruct.PLL2.PLL2Q = 10;
+    PeriphClkInitStruct.PLL2.PLL2R = 40;
+    PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL1VCIRANGE_2;
+    PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL1VCOWIDE;
+    PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
+    #define FLASH_LATENCY FLASH_LATENCY_3
+
+  #else  // Common configuration for all other H723 boards with 25MHz crystals
+
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLM = 5;  // 25Mhz / 5 = 5Mhz
+    RCC_OscInitStruct.PLL.PLLN = 96; // 25Mhz / 5 * 110 = 550Mhz
+    RCC_OscInitStruct.PLL.PLLP = 1;  // 550Mhz / 1 = 550Mhz
+    RCC_OscInitStruct.PLL.PLLQ = 10; // 550Mhz / 10 = 55Mhz
+    RCC_OscInitStruct.PLL.PLLR = 2; // unused
+    RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
+    RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
+    RCC_OscInitStruct.PLL.PLLFRACN = 0;
+
+    PeriphClkInitStruct.PLL2.PLL2M = 5; // M DIV 15 vco 25 / 15 ~ 1.667 Mhz
+    PeriphClkInitStruct.PLL2.PLL2N = 96; // N MUL 96
+    PeriphClkInitStruct.PLL2.PLL2P = 1;  // P div 2
+    PeriphClkInitStruct.PLL2.PLL2Q = 10;  // Q div 2
+    PeriphClkInitStruct.PLL2.PLL2R = 40;  // R div 2
+    PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL1VCIRANGE_2;
+    PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL1VCOWIDE;
+    PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
+
+    #define FLASH_LATENCY FLASH_LATENCY_3
+  #endif // STM32H723xx other boards
+#endif // STM32H723xx
+
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -143,33 +246,18 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
   RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY) != HAL_OK)
   {
     Error_Handler();
   }
-}
 
-/**
-  * @brief Peripherals Common Clock Configuration
-  * @retval None
-  */
-void PeriphCommonClock_Config(void)
-{
-  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
-
-  /** Initializes the peripherals clock
-  */
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SDMMC|RCC_PERIPHCLK_SPI1;
-  PeriphClkInitStruct.PLL2.PLL2M = 2;
-  PeriphClkInitStruct.PLL2.PLL2N = 12;
-  PeriphClkInitStruct.PLL2.PLL2P = 1;
-  PeriphClkInitStruct.PLL2.PLL2Q = 10;
-  PeriphClkInitStruct.PLL2.PLL2R = 2;
-  PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_3;
-  PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOMEDIUM;
-  PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
-  PeriphClkInitStruct.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL2;
-  PeriphClkInitStruct.Spi123ClockSelection = RCC_SPI123CLKSOURCE_PLL2;
+  PeriphClkInitStruct.PeriphClockSelection  = RCC_PERIPHCLK_SPI123 | RCC_PERIPHCLK_SPI45 | RCC_PERIPHCLK_I2C123 |
+                                               RCC_PERIPHCLK_USART16 | RCC_PERIPHCLK_USART234578;
+  PeriphClkInitStruct.Spi123ClockSelection  = RCC_SPI123CLKSOURCE_PLL;
+  PeriphClkInitStruct.Spi45ClockSelection   = RCC_SPI45CLKSOURCE_PLL2;
+  PeriphClkInitStruct.I2c1235ClockSelection = RCC_I2C123CLKSOURCE_D2PCLK1;
+  PeriphClkInitStruct.Usart16ClockSelection = RCC_USART16CLKSOURCE_PCLK2;
+  PeriphClkInitStruct.Usart234578ClockSelection = RCC_USART234578CLKSOURCE_PCLK1;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -201,7 +289,7 @@ static void MX_SDMMC1_SD_Init(void)
   /* USER CODE BEGIN SDMMC1_Init 2 */
   if (HAL_SD_Init(&hsd1) != HAL_OK)
   {
-      printf("SD_Init error\n");
+      printf("SD_Init error\n\r");
   }
   /* USER CODE END SDMMC1_Init 2 */
 
@@ -222,7 +310,7 @@ static void MX_USART1_UART_Init(void)
   /* USER CODE BEGIN USART1_Init 1 */
 
   /* USER CODE END USART1_Init 1 */
-  huart1.Instance = USART1;
+  huart1.Instance = USART3;
   huart1.Init.BaudRate = Config::pcBaud;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
@@ -270,11 +358,19 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
+  #ifdef BOARD_BTT_SCYLLA
+  /*Configure GPIO pin : PD10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_10;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+  #else
   /*Configure GPIO pin : PC4 */
   GPIO_InitStruct.Pin = GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  #endif
 
 }
 
@@ -341,7 +437,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+     ex: printf("Wrong parameters value: file %s on line %d\n\r", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

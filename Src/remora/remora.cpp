@@ -62,7 +62,7 @@ void Remora::printStateEntry(State state)
     const char* stateNames[] = {
         "Setup", "Start", "Idle", "Running", "Stop", "Reset", "System Reset"
     };
-    printf("\n## Transitioning to %s state\n", stateNames[state]);
+    printf("## Transitioning to %s state\n\r", stateNames[state]);
 }
 
 void Remora::handleSetupState()
@@ -108,7 +108,7 @@ void Remora::handleRunningState()
 
 void Remora::handleResetState()
 {
-    printf("Resetting rxBuffer\n");
+    printf("Resetting rxBuffer\n\r");
     resetBuffer(ptrRxData->rxBuffer, Config::dataBuffSize);
     transitionToState(ST_IDLE);
 }
@@ -120,7 +120,7 @@ void Remora::handleSysResetState()
 
 void Remora::startThread(const std::unique_ptr<pruThread>& thread, const char* name)
 {
-    printf("\nStarting the %s thread\n", name);
+    printf("Starting the %s thread\n\r", name);
     thread->startThread();
 }
 
@@ -152,7 +152,7 @@ void Remora::run()
                 handleSysResetState();
                 break;
             default:
-                printf("Error: Invalid state\n");
+                printf("Error: Invalid state\n\r");
                 break;
         }
         comms->tasks();
@@ -188,7 +188,7 @@ void Remora::loadModules()
 
             // Check if the module creation was successful
             if (!_mod) {
-                printf("Error: Failed to create module of type '%s' for thread '%s'. Skipping registration.\n",
+                printf("Error: Failed to create module of type '%s' for thread '%s'. Skipping registration.\n\r",
                         moduleType, threadName);
                 continue; // Skip to the next iteration
             }

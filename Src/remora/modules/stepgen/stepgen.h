@@ -21,19 +21,21 @@ private:
 
 	int jointNumber;               			/**< LinuxCNC joint number */
 	const char* enable;            			/**< Pin for enabling the stepper motor */
+	const bool  enableInvert;				/**< Invert the enable pin behavior */
 	const char* step;              			/**< Pin for generating step pulses */
 	const char* direction;         			/**< Pin for setting direction */
+	const bool directionInvert;				/**< Invert the direction pin behavior */
 	int32_t stepBit;               			/**< Position in the DDS accumulator that triggers a step pulse */
 
 	volatile int32_t* ptrFrequencyCommand; 	/**< Pointer to the frequency command data */
 	volatile int32_t* ptrFeedback; 			/**< Pointer for feedback data */
 	volatile uint8_t* ptrJointEnable; 		/**< Pointer for joint enable data */
 
-	Pin enablePin, stepPin, directionPin; 	/**< Pins for controlling the motor's enable, step, and direction */
+	Pin 	enablePin, stepPin, directionPin; 	/**< Pins for controlling the motor's enable, step, and direction */
 
 	int32_t rawCount;              			/**< The current position raw count (not used yet) */
 	int32_t DDSaccumulator;        			/**< The Direct Digital Synthesis (DDS) accumulator */
-	float frequencyScale;          			/**< Frequency scale factor */
+	double frequencyScale;          			/**< Frequency scale factor */
 	int32_t frequencyCommand;      			/**< The frequency command from LinuxCNC */
 	int32_t DDSaddValue;           			/**< Value added to the DDS accumulator */
 
@@ -48,7 +50,7 @@ private:
 
 public:
 
-	Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, const char* _step, const char* _direction, int _stepBit, volatile int32_t &_ptrFrequencyCommand, volatile int32_t &_ptrFeedback, volatile uint8_t &_ptrJointEnable, bool _usesModulePost);
+	Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, bool _enableInvert, const char* _step, const char* _direction, bool _directionInvert, int _stepBit, volatile int32_t &_ptrFrequencyCommand, volatile int32_t &_ptrFeedback, volatile uint8_t &_ptrJointEnable, bool _usesModulePost);
 	static std::shared_ptr<Module> create(const JsonObject& config, Remora* instance);
 
 	void update(void) override;

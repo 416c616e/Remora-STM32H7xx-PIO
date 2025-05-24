@@ -1,3 +1,4 @@
+#ifndef STM32H7xx
 /**
  * @file RemoraComms.cpp
  * @brief Implementation of the RemoraComms class for SPI communication with DMA.
@@ -33,9 +34,6 @@ RemoraComms::RemoraComms(volatile rxData_t* ptrRxData, volatile txData_t* ptrTxD
     this->irqDMArx = 	DMA1_Stream1_IRQn;
 
     // Note: Avoid performing complex initialisation here as this constructor is called before DMA and cache setup.
-
-    pin1 = new Pin("PE_11", OUTPUT);
-    pin2 = new Pin("PE_12", OUTPUT);
 }
 
 
@@ -48,19 +46,28 @@ void RemoraComms::init()
 {
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-    if(this->spiHandle.Instance == SPI1)
+    if(this->spiHandle.Instance == SPI2)
     {
     	// Interrupt pin is the NSS pin
         // Configure GPIO pin : PA_4
 
+        #ifdef SPI2
+        __HAL_RCC_GPIOB_CLK_ENABLE();
+
+        GPIO_InitStruct.Pin = GPIO_PIN_12;
+        GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+        #else
         __HAL_RCC_GPIOC_CLK_ENABLE();
 
         GPIO_InitStruct.Pin = GPIO_PIN_4;
         GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
         GPIO_InitStruct.Pull = GPIO_NOPULL;
         HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+        #endif
 
-        printf("	Initialising SPI1 slave\n");
+        printf("	Initialising SPI2 slave\n\r");
 
         this->spiHandle.Init.Mode           		= SPI_MODE_SLAVE;
         this->spiHandle.Init.Direction      		= SPI_DIRECTION_2LINES;
@@ -86,17 +93,30 @@ void RemoraComms::init()
         HAL_SPI_Init(&this->spiHandle);
 
     	// Peripheral clock enable
-    	__HAL_RCC_SPI1_CLK_ENABLE();
+    	__HAL_RCC_SPI2_CLK_ENABLE();
 
-		printf("	Initialising GPIO for SPI\n");
+		printf("	Initialising GPIO for SPI\n\r");
 
-	    __HAL_RCC_GPIOA_CLK_ENABLE();
 	    /**SPI1 GPIO Configuration
 	    PA4     ------> SPI1_NSS
 	    PA5     ------> SPI1_SCK
 	    PA6     ------> SPI1_MISO
 	    PA7     ------> SPI1_MOSI
 	    */
+       
+        #ifdef SPI2
+        __HAL_RCC_GPIOB_CLK_ENABLE();
+
+    	GPIO_InitStruct = {0};
+	    GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
+	    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	    GPIO_InitStruct.Pull = GPIO_NOPULL;
+	    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	    GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
+	    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+        #else
+	    __HAL_RCC_GPIOA_CLK_ENABLE();
+
     	GPIO_InitStruct = {0};
 	    GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
 	    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -104,11 +124,12 @@ void RemoraComms::init()
 	    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	    GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
 	    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+        #endif
 
-        printf("	Initialising DMA for SPI\n");
+        printf("	Initialising DMA for SPI\n\r");
 
         this->hdma_spi_tx.Instance 					= DMA1_Stream0;
-        this->hdma_spi_tx.Init.Request 				= DMA_REQUEST_SPI1_TX;
+        this->hdma_spi_tx.Init.Request 				= DMA_REQUEST_SPI2_TX;
         this->hdma_spi_tx.Init.Direction 			= DMA_MEMORY_TO_PERIPH;
         this->hdma_spi_tx.Init.PeriphInc 			= DMA_PINC_DISABLE;
         this->hdma_spi_tx.Init.MemInc 				= DMA_MINC_ENABLE;
@@ -122,7 +143,7 @@ void RemoraComms::init()
         __HAL_LINKDMA(&this->spiHandle, hdmatx, this->hdma_spi_tx);
 
         this->hdma_spi_rx.Instance 					= DMA1_Stream1;
-        this->hdma_spi_rx.Init.Request 				= DMA_REQUEST_SPI1_RX;
+        this->hdma_spi_rx.Init.Request 				= DMA_REQUEST_SPI2_RX;
         this->hdma_spi_rx.Init.Direction 			= DMA_PERIPH_TO_MEMORY;
         this->hdma_spi_rx.Init.PeriphInc 			= DMA_PINC_DISABLE;
         this->hdma_spi_rx.Init.MemInc 				= DMA_MINC_ENABLE;
@@ -135,7 +156,7 @@ void RemoraComms::init()
         HAL_DMA_Init(&this->hdma_spi_rx);
         __HAL_LINKDMA(&this->spiHandle, hdmarx, this->hdma_spi_rx);
 
-        printf("	Initialising DMA for Memory to Memory transfer\n");
+        printf("	Initialising DMA for Memory to Memory transfer\n\r");
 
         this->hdma_memtomem.Instance 				= DMA1_Stream2;
         this->hdma_memtomem.Init.Request 			= DMA_REQUEST_MEM2MEM;
@@ -211,7 +232,7 @@ void RemoraComms::start()
     // Check for DMA initialization errors
     if (this->dmaStatus != HAL_OK)
     {
-        printf("DMA SPI error\n");
+        printf("DMA SPI error\n\r");
     }
 }
 
@@ -625,7 +646,7 @@ void RemoraComms::handleRxInterrupt()
     }
     else // Other interrupt sources
     {
-        printf("DMA SPI Rx error\n");
+        printf("DMA SPI Rx error\n\r");
     }
 
     HAL_NVIC_EnableIRQ(this->irqDMArx);
@@ -649,8 +670,6 @@ void RemoraComms::processPacket()
 {
 	if (this->copyRXbuffer == true)
     {
-		this->pin1->set(1);
-
 	    uint8_t* srcBuffer = (uint8_t*)this->ptrRxDMABuffer->buffer[this->RXbufferIdx].rxBuffer;
 	    uint8_t* destBuffer = (uint8_t*)this->ptrRxData->rxBuffer;
 
@@ -670,8 +689,6 @@ void RemoraComms::processPacket()
 	    HAL_DMA_Abort(&this->hdma_memtomem);
 
 		this->copyRXbuffer = false;
-
-		this->pin1->set(0);
     }
 }
 
@@ -696,8 +713,6 @@ void RemoraComms::processPacket()
  */
 void RemoraComms::update()
 {
-	this->pin2->set(1);
-
 	if (this->data)
 	{
 		this->noDataCount = 0;
@@ -715,6 +730,5 @@ void RemoraComms::update()
 	}
 
 	this->data = false;
-
-	this->pin2->set(0);
 }
+#endif

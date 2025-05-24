@@ -7,7 +7,7 @@
 
 std::shared_ptr<Module> SigmaDelta::create(const JsonObject& config, Remora* instance) {
     const char* comment = config["Comment"];
-    printf("%s\n", comment);
+    printf("%s\n\r", comment);
 
     int spIndex = config["SP[i]"];
     const char* pin = config["SD Pin"];
@@ -15,15 +15,15 @@ std::shared_ptr<Module> SigmaDelta::create(const JsonObject& config, Remora* ins
     // Get pointer to the setpoint from the Remora instance
     volatile float* ptrSP = &instance->getRxData()->setPoint[spIndex];
 
-    printf("Creating SigmaDelta module: Pin=%s, SP Index=%d\n", pin, spIndex);
+    printf("Creating SigmaDelta module: Pin=%s, SP Index=%d\n\r", pin, spIndex);
 
     // Check if "SD Max" exists in the config
     if (config["SD Max"].is<int>()) {
         int SDmax = config["SD Max"];
-        printf("Using SD Max=%d\n", SDmax);
+        printf("Using SD Max=%d\n\r", SDmax);
         return std::make_shared<SigmaDelta>(pin, ptrSP, SDmax);
     } else {
-        printf("Using default SD Max\n");
+        printf("Using default SD Max\n\r");
         return std::make_shared<SigmaDelta>(pin, ptrSP);
     }
 }

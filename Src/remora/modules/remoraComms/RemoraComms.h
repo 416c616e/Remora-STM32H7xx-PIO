@@ -24,13 +24,10 @@ typedef enum {
     DMA_OTHER = 3        // Other or error status
 } DMA_TransferStatus_t;
 
-
+#ifndef STM32H7xx
 class RemoraComms : public Module
 {
     private:
-
-		Pin							*pin1, *pin2;
-
         volatile rxData_t*  		ptrRxData;
         volatile txData_t*  		ptrTxData;
         volatile DMA_RxBuffer_t* 	ptrRxDMABuffer;
@@ -83,5 +80,6 @@ class RemoraComms : public Module
         void processPacket(void);
         bool getStatus(void);
 };
+#endif
 
 #endif

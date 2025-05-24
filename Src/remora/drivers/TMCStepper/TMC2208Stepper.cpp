@@ -144,7 +144,7 @@ void TMC2208Stepper::write(uint8_t addr, uint32_t regVal) {
 	
     datagram[len] = calcCRC(datagram, len);
 	
-	//printf("write datagram = %x, %x, %x, %x, %x, %x, %x, %x\n", datagram[0], datagram[1], datagram[2], datagram[3], datagram[4], datagram[5], datagram[6], datagram[7]);
+	//printf("write datagram = %x, %x, %x, %x, %x, %x, %x, %x\n\r", datagram[0], datagram[1], datagram[2], datagram[3], datagram[4], datagram[5], datagram[6], datagram[7]);
     
     preWriteCommunication();
 
@@ -247,7 +247,7 @@ uint32_t TMC2208Stepper::read(uint8_t addr) {
             static_cast<uint8_t>(out>> 8),
             static_cast<uint8_t>(out>> 0)
         };
-        //printf("read  datagram = %x, %x, %x, %x, %x, %x, %x, %x\n", out_datagram[0], out_datagram[1], out_datagram[2], out_datagram[3], out_datagram[4], out_datagram[5], out_datagram[6], out_datagram[7]);
+        //printf("read  datagram = %x, %x, %x, %x, %x, %x, %x, %x\n\r", out_datagram[0], out_datagram[1], out_datagram[2], out_datagram[3], out_datagram[4], out_datagram[5], out_datagram[6], out_datagram[7]);
 		
         uint8_t crc = calcCRC(out_datagram, 7);
         if ((crc != static_cast<uint8_t>(out)) || crc == 0 ) {

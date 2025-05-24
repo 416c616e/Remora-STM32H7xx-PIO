@@ -51,7 +51,7 @@ void STM32H7_timer::startTimer()
     timer->CR1 |= TIM_CR1_CEN;
     NVIC_EnableIRQ(irq);
     timerRunning = true;
-    printf("Timer started\n");
+    printf("Timer started\n\r");
 }
 
 void STM32H7_timer::stopTimer()
@@ -59,7 +59,7 @@ void STM32H7_timer::stopTimer()
     NVIC_DisableIRQ(irq);
     timer->CR1 &= ~TIM_CR1_CEN;
     timerRunning = false;
-    printf("Timer stopped\n");
+    printf("Timer stopped\n\r");
 }
 
 void STM32H7_timer::timerTick() {

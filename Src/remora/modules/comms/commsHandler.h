@@ -35,6 +35,8 @@ public:
     bool getData() const { return data; }
     int getNoDataCount() const { return noDataCount; }
     bool getStatus() const { return status; }
+
+    CommsInterface* getInterface() { return &(*interface); }
 };
 
 #endif

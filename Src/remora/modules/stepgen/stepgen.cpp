@@ -1,4 +1,5 @@
 #include "stepgen.h"
+#include <STM32H7_SPIComms.h>
 
 
 std::shared_ptr<Module> Stepgen::create(const JsonObject& config, Remora* instance)
@@ -6,12 +7,14 @@ std::shared_ptr<Module> Stepgen::create(const JsonObject& config, Remora* instan
 	    const char* comment = config["Comment"];
 	    uint32_t threadFreq = config["ThreadFreq"];
 
-	    printf("%s\n", comment);
+	    printf("%s\n\r", comment);
 
 	    int joint = config["Joint Number"];
 	    const char* enable = config["Enable Pin"];
+        bool enableInvert = (strcmp(config["Enable Pin Invert"], "on") == 0);
 	    const char* step = config["Step Pin"];
 	    const char* dir = config["Direction Pin"];
+        bool dirInvert = (strcmp(config["Direction Pin Invert"], "on") == 0);
 
 	    // Configure pointers to data source and feedback location
 	    volatile int32_t* ptrJointFreqCmd = &instance->getRxData()->jointFreqCmd[joint];
@@ -21,7 +24,7 @@ std::shared_ptr<Module> Stepgen::create(const JsonObject& config, Remora* instan
 	    bool usesModulePost = true;		// stepgen uses the thread modulesPost vector
 
 	    // Create the step generator and register it in the thread
-	    return std::make_unique<Stepgen>(threadFreq, joint, enable, step, dir, Config::stepBit, *ptrJointFreqCmd, *ptrJointFeedback, *ptrJointEnable, usesModulePost);
+	    return std::make_unique<Stepgen>(threadFreq, joint, enable, enableInvert, step, dir, dirInvert, Config::stepBit, *ptrJointFreqCmd, *ptrJointFeedback, *ptrJointEnable, usesModulePost);
 	}
 
 /**
@@ -33,14 +36,16 @@ std::shared_ptr<Module> Stepgen::create(const JsonObject& config, Remora* instan
  * @param _threadFreq The thread frequency used for scaling the frequency command.
  * @param _jointNumber The joint number for which the step generator is configured.
  * @param _enable The name of the pin used to enable the step generator.
+ * @param _enableInvert Invert the enable behavior of the enable pin
  * @param _step The name of the pin used for stepping.
  * @param _direction The name of the pin used for direction.
+ * @param _directionInvert Invert the direction behavior of the dir pin
  * @param _stepBit The number of bits used for the step value.
  * @param _ptrFrequencyCommand A reference to the frequency command data for the joint.
  * @param _ptrFeedback A reference to the feedback data for the joint.
  * @param _ptrJointEnable A reference to the joint enable data.
  */
-Stepgen::Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, const char* _step, const char* _direction, int _stepBit, volatile int32_t& _ptrFrequencyCommand, volatile int32_t& _ptrFeedback,  volatile uint8_t& _ptrJointEnable, bool _usesModulePost)
+Stepgen::Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, bool _enableInvert, const char* _step, const char* _direction, bool _directionInvert, int _stepBit, volatile int32_t& _ptrFrequencyCommand, volatile int32_t& _ptrFeedback,  volatile uint8_t& _ptrJointEnable, bool _usesModulePost)
     : jointNumber(_jointNumber),
       enable(_enable),
       step(_step),
@@ -49,9 +54,11 @@ Stepgen::Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, con
       ptrFrequencyCommand(&_ptrFrequencyCommand),
       ptrFeedback(&_ptrFeedback),
       ptrJointEnable(&_ptrJointEnable),
-	  enablePin(_enable, OUTPUT),
-      stepPin(_step, OUTPUT),
-      directionPin(_direction, OUTPUT),
+	  enablePin(_enable, OUTPUT, NONE),
+      enableInvert(_enableInvert),
+      stepPin(_step, OUTPUT, NONE),
+      directionPin(_direction, OUTPUT, NONE),
+      directionInvert(_directionInvert),
       rawCount(0),
       DDSaccumulator(0),
       frequencyScale(1.0f * (1 << _stepBit) / _threadFreq),  // Frequency scaling without unnecessary cast
@@ -61,6 +68,10 @@ Stepgen::Stepgen(int32_t _threadFreq, int _jointNumber, const char* _enable, con
       isStepping(false)
 {
 	usesModulePost = _usesModulePost;
+
+    enablePin.set(enableInvert);
+    stepPin.set(false);
+    directionPin.set(false);
 }
 
 /**
@@ -92,7 +103,6 @@ void Stepgen::updatePost()
  */
 void Stepgen::slowUpdate()
 {
-    // Currently no operation for slow update
 }
 
 /**
@@ -107,11 +117,11 @@ void Stepgen::makePulses()
     isEnabled = ((*(ptrJointEnable) & mask) != 0);
     if (!isEnabled)
     {
-        enablePin.set(true);  	// Disable the driver if not enabled
-        return;  				// Exit early if the generator is disabled
+        enablePin.set(enableInvert); // Disable the driver if not enabled
+        return; // Exit early if the generator is disabled
     }
 
-    enablePin.set(false); 		// Enable the driver
+    enablePin.set(!enableInvert); // Enable the driver
 
     // Get the current frequency command and scale it using the frequency scale
     frequencyCommand = *ptrFrequencyCommand;
@@ -131,7 +141,7 @@ void Stepgen::makePulses()
     // If a step is to be made, set the direction and step pins accordingly
     if (stepNow)
     {
-        directionPin.set(isForward);  // Set direction pin
+        directionPin.set(directionInvert ? !isForward : isForward);  // Set direction pin
         stepPin.set(true);  // Set the step pin
         rawCount += (isForward ? 1 : -1);  // Update rawCount based on direction
         *ptrFeedback = rawCount;  // Update the feedback with the raw count

@@ -1,0 +1,33 @@
+{
+    "build": {
+      "core": "stm32",
+      "cpu": "cortex-m7",
+      "extra_flags": "-DSTM32H7xx -DSTM32H743xx",
+      "f_cpu": "480000000L",
+      "mcu": "stm32h743vit6",
+      "product_line": "STM32H743xx",
+      "variant": "STM32H7xx/H743VI"
+    },
+    "debug": {
+      "jlink_device": "STM32H743VI",
+      "openocd_target": "stm32h7x",
+      "svd_path": "STM32H743.svd"
+    },
+    "frameworks": [
+      "stm32cube"
+    ],
+    "name": "STM32H743VI (1024k RAM. 2048k Flash)",
+    "upload": {
+      "maximum_ram_size": 1048576,
+      "maximum_size": 2097152,
+      "protocol": "stlink",
+      "protocols": [
+        "stlink",
+        "dfu",
+        "jlink",
+        "cmsis-dap"
+      ]
+    },
+    "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32h743vi.html",
+    "vendor": "ST"
+  }

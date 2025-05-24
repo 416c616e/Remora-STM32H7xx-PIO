@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 namespace Config {
-    constexpr uint32_t pruBaseFreq = 40000;        // PRU Base thread ISR update frequency (hz)
+    constexpr uint32_t pruBaseFreq = 120000;        // PRU Base thread ISR update frequency (hz)
     constexpr uint32_t pruServoFreq = 1000;        // PRU Servo thread ISR update frequency (hz)
     constexpr uint32_t oversample = 3;
     constexpr uint32_t swBaudRate = 19200;         // Software serial baud rate
