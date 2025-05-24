@@ -110,11 +110,11 @@ void Stepgen::makePulses()
     isEnabled = ((*(ptrJointEnable) & mask) != 0);
     if (!isEnabled)
     {
-        enablePin.set(enableInvert ? true : false); // Disable the driver if not enabled
+        enablePin.set(enableInvert); // Disable the driver if not enabled
         return; // Exit early if the generator is disabled
     }
 
-    enablePin.set(enableInvert ? false : true); // Enable the driver
+    enablePin.set(!enableInvert); // Enable the driver
 
     // Get the current frequency command and scale it using the frequency scale
     frequencyCommand = *ptrFrequencyCommand;
