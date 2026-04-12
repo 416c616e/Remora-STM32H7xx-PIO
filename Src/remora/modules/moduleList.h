@@ -13,6 +13,8 @@
 #include "sigmaDelta/sigmaDelta.h"
 #include "stepgen/stepgen.h"
 #include "tmc/tmc.h"
+#include "homing/homing.h"
+#include "crashDetection/crashDetection.h"
 
 #include "moduleInterrupt.h"
 

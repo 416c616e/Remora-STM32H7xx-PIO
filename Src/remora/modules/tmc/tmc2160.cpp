@@ -175,3 +175,109 @@ void TMC2160::configure()
 }
 
 void TMC2160::update(){}
+
+// Multi-layer protection implementations
+void TMC2160::setStallThreshold(uint8_t threshold) {
+    // TMC2160 uses DCCTRL for StallGuard2
+    driver->dc_sg(threshold);
+    stallThreshold = threshold;
+}
+
+uint8_t TMC2160::getStallThreshold() {
+    return driver->dc_sg();
+}
+
+int16_t TMC2160::getStallGuardResult() {
+    return driver->sg_result();
+}
+
+int16_t TMC2160::getCurrentA() {
+    uint32_t mcur = driver->MSCURACT();
+    union {
+        uint32_t sr;
+        struct {
+            int16_t cur_a : 9;
+            int16_t : 7;
+            int16_t cur_b : 9;
+        };
+    } r;
+    r.sr = mcur;
+    return r.cur_a;
+}
+
+int16_t TMC2160::getCurrentB() {
+    uint32_t mcur = driver->MSCURACT();
+    union {
+        uint32_t sr;
+        struct {
+            int16_t cur_a : 9;
+            int16_t : 7;
+            int16_t cur_b : 9;
+        };
+    } r;
+    r.sr = mcur;
+    return r.cur_b;
+}
+
+bool TMC2160::checkCurrentSpike(int16_t currentA, int16_t currentB, int16_t thresholdA, int16_t thresholdB) {
+    return (abs(currentA) > thresholdA || abs(currentB) > thresholdB);
+}
+
+bool TMC2160::checkStallGuard() {
+    int16_t sgResult = getStallGuardResult();
+    // StallGuard result is 10-bit (0-1023), higher = less load
+    // When stall detected, value drops significantly
+    // Threshold comparison: if sgResult < (256 - stallThreshold), stall detected
+    return (sgResult < (256 - stallThreshold));
+}
+
+void TMC2160::enableLayer1(bool enabled) {
+    layer1Enabled = enabled;
+    if (enabled) {
+        // Enable SpreadCycle mode for StallGuard2
+        driver->en_pwm_mode(false);
+    }
+}
+
+void TMC2160::enableLayer2(bool enabled) {
+    layer2Enabled = enabled;
+}
+
+void TMC2160::enableLayer3(bool enabled) {
+    layer3Enabled = enabled;
+}
+
+bool TMC2160::isLayer1Enabled() { return layer1Enabled; }
+bool TMC2160::isLayer2Enabled() { return layer2Enabled; }
+bool TMC2160::isLayer3Enabled() { return layer3Enabled; }
+
+bool TMC2160::validateCrashCondition(int16_t currentA, int16_t currentB, int32_t currentPosition) {
+    bool layer1Triggered = false;
+    bool layer2Triggered = false;
+    bool layer3Triggered = false;
+    
+    // Layer 1: StallGuard2
+    if (layer1Enabled) {
+        layer1Triggered = checkStallGuard();
+    }
+    
+    // Layer 2: Current spike
+    if (layer2Enabled) {
+        layer2Triggered = checkCurrentSpike(currentA, currentB, static_cast<int16_t>(currentSpikeThresholdA), static_cast<int16_t>(currentSpikeThresholdB));
+    }
+    
+    // Layer 3: Position deviation
+    if (layer3Enabled) {
+        layer3Triggered = checkPositionDeviation(currentPosition, positionTolerance);
+    }
+    
+    // Multi-layer validation
+    if (requireMultipleLayers) {
+        int triggeredCount = (layer1Triggered ? 1 : 0) +
+                            (layer2Triggered ? 1 : 0) +
+                            (layer3Triggered ? 1 : 0);
+        return triggeredCount >= 2;
+    }
+    
+    return layer1Triggered || layer2Triggered || layer3Triggered;
+}

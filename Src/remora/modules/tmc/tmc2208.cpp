@@ -71,3 +71,102 @@ void TMC2208::update()
 {
     driver->SWSerial->tickerHandler();
 }
+
+// Multi-layer protection implementations
+// Note: TMC2208 does NOT support StallGuard2
+
+void TMC2208::setStallThreshold(uint8_t threshold) {
+    // Not supported on TMC2208
+    stallThreshold = 0;
+}
+
+uint8_t TMC2208::getStallThreshold() {
+    return 0;  // Not supported
+}
+
+int16_t TMC2208::getStallGuardResult() {
+    return 0;  // Not supported
+}
+
+int16_t TMC2208::getCurrentA() {
+    uint32_t mcur = driver->MSCURACT();
+    union {
+        uint32_t sr;
+        struct {
+            int16_t cur_a : 9;
+            int16_t : 7;
+            int16_t cur_b : 9;
+        };
+    } r;
+    r.sr = mcur;
+    return r.cur_a;
+}
+
+int16_t TMC2208::getCurrentB() {
+    uint32_t mcur = driver->MSCURACT();
+    union {
+        uint32_t sr;
+        struct {
+            int16_t cur_a : 9;
+            int16_t : 7;
+            int16_t cur_b : 9;
+        };
+    } r;
+    r.sr = mcur;
+    return r.cur_b;
+}
+
+bool TMC2208::checkCurrentSpike(int16_t currentA, int16_t currentB, int16_t thresholdA, int16_t thresholdB) {
+    return (abs(currentA) > thresholdA || abs(currentB) > thresholdB);
+}
+
+bool TMC2208::checkStallGuard() {
+    // Not supported on TMC2208
+    return false;
+}
+
+void TMC2208::enableLayer1(bool enabled) {
+    // Layer 1 (StallGuard2) not supported on TMC2208
+    layer1Enabled = false;
+}
+
+void TMC2208::enableLayer2(bool enabled) {
+    layer2Enabled = enabled;
+}
+
+void TMC2208::enableLayer3(bool enabled) {
+    layer3Enabled = enabled;
+}
+
+bool TMC2208::isLayer1Enabled() { return false; }  // Not supported
+bool TMC2208::isLayer2Enabled() { return layer2Enabled; }
+bool TMC2208::isLayer3Enabled() { return layer3Enabled; }
+
+bool TMC2208::validateCrashCondition(int16_t currentA, int16_t currentB, int32_t currentPosition) {
+    bool layer1Triggered = false;
+    bool layer2Triggered = false;
+    bool layer3Triggered = false;
+    
+    // Layer 1: StallGuard2 - NOT SUPPORTED
+    // Always false for TMC2208
+    
+    // Layer 2: Current spike
+    if (layer2Enabled) {
+        layer2Triggered = checkCurrentSpike(currentA, currentB, static_cast<int16_t>(currentSpikeThresholdA), static_cast<int16_t>(currentSpikeThresholdB));
+    }
+    
+    // Layer 3: Position deviation
+    if (layer3Enabled) {
+        layer3Triggered = checkPositionDeviation(currentPosition, positionTolerance);
+    }
+    
+    // Multi-layer validation
+    if (requireMultipleLayers) {
+        int triggeredCount = (layer1Triggered ? 1 : 0) +
+                            (layer2Triggered ? 1 : 0) +
+                            (layer3Triggered ? 1 : 0);
+        return triggeredCount >= 2;
+    }
+    
+    return layer2Triggered || layer3Triggered;
+}

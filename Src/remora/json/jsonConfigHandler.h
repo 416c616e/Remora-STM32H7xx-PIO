@@ -26,5 +26,14 @@ public:
 	void updateThreadFreq();
 	JsonArray getModules();
 	JsonObject getModuleConfig(const char* threadName, const char* moduleType);
+	
+	// Homing configuration methods
+	JsonObject getHomingConfig(const char* axis);
+	
+	// Crash detection configuration methods
+	JsonObject getCrashDetectionConfig(const char* axis);
+	
+	// TMC configuration methods
+	JsonObject getTMCConfig(const char* axis);
 };
 #endif

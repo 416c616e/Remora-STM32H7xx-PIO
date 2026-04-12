@@ -59,10 +59,55 @@ std::shared_ptr<Module> TMC5160::create(const JsonObject& config, Remora* instan
     uint8_t mode = config["Driver mode"];
     uint16_t stall = config["Stall sensitivity"];
 
-    return std::make_shared<TMC5160>(std::move(pinCS), std::move(pinMOSI), std::move(pinMISO), std::move(pinSCK), RSense, address, current, microsteps, mode, stall, holdCurrent, instance);
+    // Read multi-layer protection configuration
+    uint8_t stallThreshold = 64;  // Default
+    bool sgEnabled = true;
+    float currentSpikeThreshold = 2.0f;
+    bool sensorlessHomingEnabled = false;
+    bool crashDetectionEnabled = false;
+    bool layer1Enabled = true;
+    bool layer2Enabled = true;
+    bool layer3Enabled = false;
+
+    // Check for sensorless homing configuration
+    if (config.containsKey("Sensorless homing")) {
+        const JsonObject& homingConfig = config["Sensorless homing"];
+        sensorlessHomingEnabled = homingConfig["enabled"] | false;
+        printf("Sensorless homing: %s\n\r", sensorlessHomingEnabled ? "enabled" : "disabled");
+    }
+
+    // Check for crash detection configuration
+    if (config.containsKey("Crash detection")) {
+        const JsonObject& crashConfig = config["Crash detection"];
+        crashDetectionEnabled = crashConfig["enabled"] | false;
+        layer1Enabled = crashConfig["layer1"]["enabled"] | true;
+        layer2Enabled = crashConfig["layer2"]["enabled"] | true;
+        layer3Enabled = crashConfig["layer3"]["enabled"] | false;
+        currentSpikeThreshold = static_cast<float>(crashConfig["currentSpikeThreshold"] | 2.0f);
+        printf("Crash detection: %s\n\r", crashDetectionEnabled ? "enabled" : "disabled");
+        printf("  Layer1 (StallGuard2): %s\n\r", layer1Enabled ? "enabled" : "disabled");
+        printf("  Layer2 (Current): %s\n\r", layer2Enabled ? "enabled" : "disabled");
+        printf("  Layer3 (Position): %s\n\r", layer3Enabled ? "enabled" : "disabled");
+    }
+
+    // Read stall sensitivity if provided in crash detection config
+    if (config.containsKey("Crash detection")) {
+        const JsonObject& crashConfig = config["Crash detection"];
+        if (crashConfig.containsKey("stallThreshold")) {
+            stallThreshold = static_cast<uint8_t>(crashConfig["stallThreshold"] | 64);
+        }
+    }
+
+    return std::make_shared<TMC5160>(std::move(pinCS), std::move(pinMOSI), std::move(pinMISO), std::move(pinSCK), RSense, address, current, microsteps, mode, stall, holdCurrent, instance,
+                                     stallThreshold, sgEnabled, currentSpikeThreshold,
+                                     sensorlessHomingEnabled, crashDetectionEnabled,
+                                     layer1Enabled, layer2Enabled, layer3Enabled);
 }
 
-TMC5160::TMC5160(std::string _pinCS, std::string _pinMOSI, std::string _pinMISO, std::string _pinSCK, float _Rsense, uint8_t _addr, uint16_t _mA, uint16_t _microsteps, uint8_t _mode, uint16_t _stall, float _holdCurrent, Remora* _instance)
+TMC5160::TMC5160(std::string _pinCS, std::string _pinMOSI, std::string _pinMISO, std::string _pinSCK, float _Rsense, uint8_t _addr, uint16_t _mA, uint16_t _microsteps, uint8_t _mode, uint16_t _stall, float _holdCurrent, Remora* _instance,
+                   uint8_t stallThreshold, bool sgEnabled, float currentSpikeThreshold,
+                   bool sensorlessHomingEnabled, bool crashDetectionEnabled,
+                   bool layer1Enabled, bool layer2Enabled, bool layer3Enabled)
     : TMC{_instance, _Rsense},  // Call base class constructor
       pinCS(std::move(_pinCS)),
 	  pinMOSI(std::move(_pinMOSI)),
@@ -74,7 +119,21 @@ TMC5160::TMC5160(std::string _pinCS, std::string _pinMOSI, std::string _pinMISO,
       mode(_mode),
       stall(_stall),
       holdCurrent(_holdCurrent),
-      driver(std::make_unique<TMC5160Stepper>(pinCS, _Rsense, pinMOSI, pinMISO, pinSCK)) {}
+      driver(std::make_unique<TMC5160Stepper>(pinCS, _Rsense, pinMOSI, pinMISO, pinSCK)),
+      // Multi-layer protection configuration
+      stallThreshold(stallThreshold),
+      sgEnabled(sgEnabled),
+      nominalCurrentA(static_cast<float>(_mA) / 1000.0f),
+      nominalCurrentB(static_cast<float>(_mA) / 1000.0f),
+      currentSpikeThreshold(currentSpikeThreshold),
+      lastKnownPosition(0),
+      positionTolerance(100),
+      sensorlessHomingEnabled(sensorlessHomingEnabled),
+      crashDetectionEnabled(crashDetectionEnabled),
+      layer1Enabled(layer1Enabled),
+      layer2Enabled(layer2Enabled),
+      layer3Enabled(layer3Enabled)
+      {}
 
 
 void TMC5160::configure()
@@ -172,6 +231,205 @@ void TMC5160::configure()
     driver->iholddelay(TMC5160_IHOLDDELAY);
     driver->TPOWERDOWN(TMC5160_TPOWERDOWN);
     driver->TPWMTHRS(TMC5160_TPWM_THRS);
+
+    // Apply multi-layer protection configuration
+    setStallThreshold(stallThreshold);
+    enableStallGuard(sgEnabled);
+    setNominalCurrent(nominalCurrentA, nominalCurrentB);
+    setCurrentSpikeThreshold(currentSpikeThreshold);
+    enableLayer1(layer1Enabled);
+    enableLayer2(layer2Enabled);
+    enableLayer3(layer3Enabled);
+
+    printf("TMC5160 configured - StallGuard2: %s, Layer1: %s, Layer2: %s, Layer3: %s\n\r",
+           sgEnabled ? "enabled" : "disabled",
+           layer1Enabled ? "enabled" : "disabled",
+           layer2Enabled ? "enabled" : "disabled",
+           layer3Enabled ? "enabled" : "disabled");
 }
 
 void TMC5160::update(){}
+
+// ============================================================================
+// StallGuard2 Configuration Methods
+// ============================================================================
+
+void TMC5160::setStallThreshold(uint8_t threshold) {
+    stallThreshold = threshold;
+    // Apply threshold to COOLCONF register (sgt field)
+    driver->sgt(static_cast<int8_t>(threshold));
+}
+
+uint8_t TMC5160::getStallThreshold() {
+    return stallThreshold;
+}
+
+int16_t TMC5160::getStallGuardResult() {
+    // Read DRV_STATUS register and extract sg_result (bits 15:0)
+    uint32_t drvStatus = driver->DRV_STATUS();
+    int16_t sgResult = static_cast<int16_t>(drvStatus & 0xFFFF);
+    return sgResult;
+}
+
+void TMC5160::enableStallGuard(bool enable) {
+    sgEnabled = enable;
+    // Note: StallGuard2 is enabled via COOLCONF.semin > 0
+    if (enable && driver->semin() == 0) {
+        driver->semin(1);  // Minimum value to enable
+    } else if (!enable) {
+        driver->semin(0);  // Disable
+    }
+}
+
+bool TMC5160::isStallGuardEnabled() {
+    return sgEnabled;
+}
+
+// ============================================================================
+// Current Monitoring Methods
+// ============================================================================
+
+void TMC5160::setNominalCurrent(float currentA, float currentB) {
+    nominalCurrentA = currentA;
+    nominalCurrentB = currentB;
+}
+
+void TMC5160::setCurrentSpikeThreshold(float threshold) {
+    currentSpikeThreshold = threshold;
+}
+
+bool TMC5160::checkCurrentSpike() {
+    int16_t currentA = getCurrentA();
+    int16_t currentB = getCurrentB();
+    
+    // Convert current readings to amps (MSCURACT is in 10-bit format)
+    // The actual current depends on the driver's current scaling
+    // For TMC5160, we use the nominal current as reference
+    
+    float actualCurrentA = static_cast<float>(currentA) / 1024.0f * static_cast<float>(mA) / 1000.0f;
+    float actualCurrentB = static_cast<float>(currentB) / 1024.0f * static_cast<float>(mA) / 1000.0f;
+    
+    // Check if either current exceeds the spike threshold
+    bool spikeA = (nominalCurrentA > 0) && (actualCurrentA > nominalCurrentA * currentSpikeThreshold);
+    bool spikeB = (nominalCurrentB > 0) && (actualCurrentB > nominalCurrentB * currentSpikeThreshold);
+    
+    return spikeA || spikeB;
+}
+
+int16_t TMC5160::getCurrentA() {
+    // Read MSCURACT register and extract cur_a (bits 15:0)
+    uint32_t mscuract = driver->MSCURACT();
+    int16_t curA = static_cast<int16_t>(mscuract & 0xFFFF);
+    return curA;
+}
+
+int16_t TMC5160::getCurrentB() {
+    // Read MSCURACT register and extract cur_b (bits 31:16)
+    uint32_t mscuract = driver->MSCURACT();
+    int16_t curB = static_cast<int16_t>((mscuract >> 16) & 0xFFFF);
+    return curB;
+}
+
+// ============================================================================
+// Position Tracking Methods
+// ============================================================================
+
+void TMC5160::setLastKnownPosition(int32_t position) {
+    lastKnownPosition = position;
+}
+
+int32_t TMC5160::getLastKnownPosition() {
+    return lastKnownPosition;
+}
+
+void TMC5160::setPositionTolerance(int32_t tolerance) {
+    positionTolerance = tolerance;
+}
+
+bool TMC5160::checkPositionDeviation() {
+    // Read actual position from XACTUAL register
+    int32_t currentPosition = driver->XACTUAL();
+    
+    // Calculate deviation from last known position
+    int32_t deviation = currentPosition - lastKnownPosition;
+    
+    // Return true if deviation exceeds tolerance (absolute value)
+    return (deviation > positionTolerance) || (deviation < -positionTolerance);
+}
+
+// ============================================================================
+// Layer Control Methods
+// ============================================================================
+
+void TMC5160::enableLayer1(bool enable) {
+    layer1Enabled = enable;
+    enableStallGuard(enable);
+}
+
+void TMC5160::enableLayer2(bool enable) {
+    layer2Enabled = enable;
+}
+
+void TMC5160::enableLayer3(bool enable) {
+    layer3Enabled = enable;
+}
+
+bool TMC5160::isLayer1Enabled() {
+    return layer1Enabled;
+}
+
+bool TMC5160::isLayer2Enabled() {
+    return layer2Enabled;
+}
+
+bool TMC5160::isLayer3Enabled() {
+    return layer3Enabled;
+}
+
+// ============================================================================
+// Multi-Layer Validation Method
+// ============================================================================
+
+bool TMC5160::validateCrashCondition() {
+    // Only validate if at least one layer is enabled
+    if (!layer1Enabled && !layer2Enabled && !layer3Enabled) {
+        return false;
+    }
+    
+    bool layer1Trigger = false;
+    bool layer2Trigger = false;
+    bool layer3Trigger = false;
+    
+    // Layer 1: StallGuard2 check
+    if (layer1Enabled && sgEnabled) {
+        int16_t sgResult = getStallGuardResult();
+        // Lower SG_RESULT indicates higher load (more sensitive)
+        // When sg_result <= threshold, a stall/crash is detected
+        if (sgResult <= static_cast<int16_t>(stallThreshold)) {
+            layer1Trigger = true;
+        }
+    }
+    
+    // Layer 2: Current spike check
+    if (layer2Enabled) {
+        if (checkCurrentSpike()) {
+            layer2Trigger = true;
+        }
+    }
+    
+    // Layer 3: Position deviation check
+    if (layer3Enabled) {
+        if (checkPositionDeviation()) {
+            layer3Trigger = true;
+        }
+    }
+    
+    // Crash is confirmed if:
+    // - Any single layer is enabled and triggered, OR
+    // - Multiple layers are enabled and at least one triggers
+    // This allows flexible configuration based on application needs
+    
+    bool crashDetected = layer1Trigger || layer2Trigger || layer3Trigger;
+    
+    return crashDetected;
+}

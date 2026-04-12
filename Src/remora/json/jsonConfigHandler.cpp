@@ -104,6 +104,78 @@ bool JsonConfigHandler::readFileContents() {
 	return true;
 }
 
+JsonObject JsonConfigHandler::getHomingConfig(const char* axis) {
+    if (configError || !doc.containsKey("Homing")) {
+        return JsonObject();
+    }
+    
+    JsonObject homingConfig = doc["Homing"];
+    if (axis) {
+        // Try to get config for specific axis
+        JsonVariant variant = homingConfig[axis];
+        if (variant.is<JsonObject>()) {
+            return variant.as<JsonObject>();
+        }
+    }
+    
+    // Return first available homing config
+    for (JsonPair pair : homingConfig) {
+        if (pair.value().is<JsonObject>()) {
+            return pair.value().as<JsonObject>();
+        }
+    }
+    
+    return JsonObject();
+}
+
+JsonObject JsonConfigHandler::getCrashDetectionConfig(const char* axis) {
+    if (configError || !doc.containsKey("CrashDetection")) {
+        return JsonObject();
+    }
+    
+    JsonObject crashConfig = doc["CrashDetection"];
+    if (axis) {
+        // Try to get config for specific axis
+        JsonVariant variant = crashConfig[axis];
+        if (variant.is<JsonObject>()) {
+            return variant.as<JsonObject>();
+        }
+    }
+    
+    // Return first available crash detection config
+    for (JsonPair pair : crashConfig) {
+        if (pair.value().is<JsonObject>()) {
+            return pair.value().as<JsonObject>();
+        }
+    }
+    
+    return JsonObject();
+}
+
+JsonObject JsonConfigHandler::getTMCConfig(const char* axis) {
+    if (configError || !doc.containsKey("TMC5160")) {
+        return JsonObject();
+    }
+    
+    JsonObject tmcConfig = doc["TMC5160"];
+    if (axis) {
+        // Try to get config for specific axis
+        JsonVariant variant = tmcConfig[axis];
+        if (variant.is<JsonObject>()) {
+            return variant.as<JsonObject>();
+        }
+    }
+    
+    // Return first available TMC config
+    for (JsonPair pair : tmcConfig) {
+        if (pair.value().is<JsonObject>()) {
+            return pair.value().as<JsonObject>();
+        }
+    }
+    
+    return JsonObject();
+}
+
 
 bool JsonConfigHandler::parseJson() {
 	
